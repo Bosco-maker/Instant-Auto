@@ -1,9 +1,9 @@
 package com.example.purejava;
 
-import com.example.purejava.actions.Action;
-import com.example.purejava.actions.AutoParser;
-import com.example.purejava.actions.MetaActionRegistry;
-import com.example.purejava.configs.MetaFieldRegistry;
+import com.example.instantauto.actions.Action;
+import com.example.instantauto.actions.AutoParser;
+import com.example.instantauto.actions.MetaActionRegistry;
+import com.example.instantauto.configs.MetaFieldRegistry;
 
 import java.io.File;
 import java.util.List;

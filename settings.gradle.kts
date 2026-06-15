@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 rootProject.name = "autosequenceparser"
 include(":app")
 include(":pureJava")
+include(":instantauto")

@@ -1,7 +1,7 @@
 package com.example.purejava;
 
-import com.example.purejava.configs.ConfigParser;
-import com.example.purejava.configs.MetaFieldRegistry;
+import com.example.instantauto.configs.ConfigParser;
+import com.example.instantauto.configs.MetaFieldRegistry;
 
 import java.util.List;
 
