@@ -1,5 +1,7 @@
 package com.example.instantauto.actions;
 
+import com.example.instantauto.configs.MetaFieldRegistry;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -58,7 +60,10 @@ public class MetaActionRegistry {
 
         MetaAction meta = registry.get(name.toUpperCase());
         if (meta == null) return null;
-        
+        MetaFieldRegistry.ConfigEntry<?> variableEntry = MetaFieldRegistry.getEntry(params);
+        if (variableEntry != null && variableEntry.value != null) {
+            params = variableEntry.value.toString();
+        }
         return meta.create(params);
     }
 

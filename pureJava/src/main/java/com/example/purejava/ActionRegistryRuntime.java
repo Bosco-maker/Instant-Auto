@@ -27,7 +27,7 @@ public class ActionRegistryRuntime {
         }
 
         System.out.println("\n--- Testing 'Big Action' Execution ---");
-        String testAction = "RED.THIRD.INTAKE";
+        String testAction = "SIX.SEVEN.ACTION";
         System.out.println("Creating and running: " + testAction);
         
         Action action = MetaActionRegistry.createAction(testAction);

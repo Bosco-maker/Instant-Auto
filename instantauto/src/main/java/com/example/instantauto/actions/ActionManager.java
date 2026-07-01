@@ -10,6 +10,11 @@ public class ActionManager {
             this.message = message;
         }
 
+        public PrintAction (double n) {this.message = String.format(Locale.US, "%.2f", n);}
+        public PrintAction (int n) {this.message = String.format(Locale.US, "%d", n);}
+        public PrintAction (boolean b) {this.message = String.format(Locale.US, "%b", b);}
+
+
         @Override
         public boolean run() {
             System.out.println(message);

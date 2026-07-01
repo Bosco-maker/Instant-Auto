@@ -130,6 +130,8 @@ public class ConfigParser {
         try {
             if (type == Double.class || type == double.class) {
                 return Double.parseDouble(val);
+            } else if (type == Integer.class || type == int.class) {
+                return Integer.parseInt(val);
             } else if (type == Boolean.class || type == boolean.class) {
                 if (val.equalsIgnoreCase("true")) return true;
                 if (val.equalsIgnoreCase("false")) return false;

@@ -10,3 +10,8 @@ RED.THIRD.INTAKE={
      GO.TO.POSE2D(40,20,90),
      GO.TO.POSE2D(40,65,90)
 }
+
+SIX.SEVEN.ACTION={
+    GO.TO.POSE2D(65,-20,270),
+    PRINT("Hello World!")
+}
