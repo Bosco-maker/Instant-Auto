@@ -19,6 +19,29 @@ public class BigAction implements MetaAction {
     }
 
     @Override
+    public Action create(Object params) {
+        System.out.println("BIG ACTION: " + id);
+        if (hasError) {
+            return () -> false;
+        }
+
+        List<Action> actions = new java.util.ArrayList<>();
+        for (String line : subActionLines) {
+            Action a = MetaActionRegistry.createAction(line);
+            if (a != null) {
+                actions.add(a);
+            }
+        }
+
+        return () -> {
+            for (Action a : actions) {
+                a.run();
+            }
+            return false;
+        };
+    }
+
+    @Override
     public Action create(String params) {
         if (hasError) {
             return () -> false;

@@ -10,9 +10,11 @@ public interface MetaAction {
     String getIdentifier();
 
     /**
-     * Creates an executable Action based on the provided parameter string.
-     * @param params The parameters inside the parentheses (e.g., "10, 20, 0").
+     * Creates an executable Action based on the provided parameter.
+     * @param params The parameter (e.g., a "10, 20, 0" String or a Pose2d object).
      * @return A RoadRunner-style Action.
      */
+    Action create(Object params);
+
     Action create(String params);
 }
