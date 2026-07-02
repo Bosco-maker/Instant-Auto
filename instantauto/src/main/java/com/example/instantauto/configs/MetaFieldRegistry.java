@@ -4,7 +4,10 @@ import com.example.instantauto.configs.types.IntakeSetting;
 import com.example.instantauto.configs.types.MetaField;
 import com.example.instantauto.configs.types.Pose2d;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class MetaFieldRegistry {
@@ -55,5 +58,16 @@ public class MetaFieldRegistry {
 
     public static MetaField<?> getTypeDefinition(Class<?> type) {
         return typeDefinitions.get(type);
+    }
+    public static Collection<MetaField<?>> getAllRegisteredMetaFields() {
+        return typeDefinitions.values();
+    }
+
+    public static List<String> getAllRegisteredFieldNames() {
+        List<String> identifiers = new ArrayList<>();
+        for (ConfigEntry<?> entry : entries.values()) {
+            identifiers.add(entry.fieldName);
+        }
+        return identifiers;
     }
 }

@@ -1,5 +1,6 @@
 package com.example.instantauto.configs;
 
+import com.example.instantauto.actions.MetaActionRegistry;
 import com.example.instantauto.configs.types.MetaField;
 
 import java.io.BufferedReader;
@@ -56,7 +57,7 @@ public class ConfigParser {
 
         MetaFieldRegistry.ConfigEntry<?> entry = MetaFieldRegistry.getEntry(key);
         if (entry == null) {
-            logs.add("Line " + lineNumber + ": Unknown Field '" + key + "'");
+            addLocalVariables(key, value, lineNumber);
             return;
         }
 
@@ -152,6 +153,46 @@ public class ConfigParser {
     @SuppressWarnings("unchecked")
     private <T> void updateEntryValue(MetaFieldRegistry.ConfigEntry<T> entry, Object newValue) {
         entry.value = (T) newValue;
+    }
+    
+    private void addLocalVariables(String key, String value, int lineNumber) {
+        if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")) {
+            registerLocal(key, Boolean.class, Boolean.parseBoolean(value));
+            logs.add("Line " + lineNumber + ": Parsed as local boolean: '" + key + " = " + value);
+            return;
+        }
+
+        try {
+            registerLocal(key, Integer.class, Integer.parseInt(value));
+            logs.add("Line " + lineNumber + ": Parsed as local int: '" + key + " = " + value);
+            return;
+        } catch (NumberFormatException e) {
+            // Not an integer
+        }
+
+        try {
+            registerLocal(key, Double.class, Double.parseDouble(value));
+            logs.add("Line " + lineNumber + ": Parsed as local double: '" + key + " = " + value);
+            return;
+        } catch (NumberFormatException e) {
+            // Not a double
+        }
+
+        for (MetaField<?> type : MetaFieldRegistry.getAllRegisteredMetaFields()) {
+            if (value.contains(type.getIdentifier())) {
+                Object metaFieldValue = parseMetaFieldValue(value, type, lineNumber);
+                registerLocal(key, type.getClass(), metaFieldValue);
+                logs.add("Line " + lineNumber + ": Parsed as local " + type.getIdentifier() + ": '" + key + " = " + value);
+                return;
+            }
+        }
+        logs.add("Line " + lineNumber + ": Parsed as local string: '" + key + " = " + value);
+        registerLocal(key, String.class, value);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> void registerLocal(String key, Class<T> type, Object value) {
+        MetaFieldRegistry.registerField(key, type, (T) value);
     }
 
     public List<String> getLogs() {

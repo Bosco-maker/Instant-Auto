@@ -90,11 +90,7 @@ public class AutoRuntime {
             action.run();
         }
         System.out.println("\n=== Autonomous Sequence Complete ===");
-        printField("redGoalPose");
-        printField("blueGoalPose");
-        printField("intakeActive");
-        printField("maxPower");
-        printField("motorName");
+        dumpAllFields();
     }
 
     private static void printField(String name) {
@@ -103,6 +99,13 @@ public class AutoRuntime {
             System.out.println(entry.fieldName + ": " + entry.value);
         } else {
             System.out.println(name + ": [Not Registered]");
+        }
+    }
+
+    private static void dumpAllFields() {
+        List<String> registeredIdentifiers = MetaFieldRegistry.getAllRegisteredFieldNames();
+        for (String identifier : registeredIdentifiers) {
+            printField(identifier);
         }
     }
 }
