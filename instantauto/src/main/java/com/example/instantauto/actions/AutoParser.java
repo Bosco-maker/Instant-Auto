@@ -50,14 +50,14 @@ public class AutoParser {
      * Parses the selected autonomous file, including configuration hierarchy and action sequence.
      */
     public void parse(File autoFile) {
-        // Initialize Registry from settings
-        MetaActionRegistry.loadSettings(metaActionSettingsPath);
-
         // 1. Parse General Settings (Base Config)
         configEngine.parseConfig(generalSettingsPath);
 
         // 2. Parse Auto-specific configs (Overrides)
         configEngine.parseConfig(autoFile.getAbsolutePath());
+
+        // Initialize Registry from settings
+        MetaActionRegistry.loadSettings(metaActionSettingsPath);
 
         // --- Post-parsing Validation & Logic ---
         
