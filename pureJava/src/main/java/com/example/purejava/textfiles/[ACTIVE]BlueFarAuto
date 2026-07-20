@@ -2,6 +2,10 @@ Title=Blue Far
 Starting=BLUE.FAR
 BLUE.LOAD.INTAKE
 BLUE.THIRD.INTAKE
+is_blue = true
 
-RedGoalPose = pose2d(0, 0, 0)
-BlueGoalPose = pose2d(0, 0, 0)
+RedGoalPose = pose2d(67, 0, 0)
+BlueGoalPose = pose2d(0, 67, 0)
+
+if (is_active) { PRINT("Conditional Action (BooleanSupplier) Test Passed") } else { PRINT("Conditional Action (BooleanSupplier) Test Failed") }
+if (is_blue) { if (is_active){GO.TO.POSE2D(RedGoalPose) } else { GO.TO.POSE2D(BlueGoalPose) } } else { PRINT("Conditional Action (Literal) Test Failed") }

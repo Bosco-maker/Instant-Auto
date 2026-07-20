@@ -31,6 +31,9 @@ public class AutoRuntime {
 
         AutoParser autoParser = new AutoParser(GENERAL_SETTINGS, META_ACTION_SETTINGS);
 
+        // Register custom conditions
+        MetaActionRegistry.registerCondition("is_active", () -> false);
+
         // 1. Scan for [ACTIVE] files
         List<File> activeAutos = autoParser.findActiveAutos(TEXTFILES_DIR);
 
