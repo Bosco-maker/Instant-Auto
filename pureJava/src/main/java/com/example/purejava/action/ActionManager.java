@@ -4,75 +4,46 @@ import com.example.instantauto.actions.Action;
 import com.example.instantauto.actions.MetaActionRegistry;
 import com.example.instantauto.actions.MiniAction;
 import com.example.purejava.configs.Pose2d;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import java.util.Locale;
 
 public class ActionManager {
     public static void init() {
         // Register Primitives (Mini Actions)
-        MetaActionRegistry.register(new MiniAction("GO.TO.POSE2D", params -> {
-            // Handle Case 1: Received a Pose2d object (Variable Lookup)
-            if (params instanceof Pose2d) {
-                Pose2d p = (Pose2d) params;
-                return ActionManager.goToPoseAction(p.x, p.y, p.heading);
-            }
+        MetaActionRegistry.register(new MiniAction("GO.TO.POSE2D", ActionManager::goToPoseFactory));
 
-            // Handle Case 2: Received a String (Literal Parameters "x, y, h")
-            if (params instanceof String) {
-                try {
-                    String s = (String) params;
-                    if (s.isEmpty()) return null;
-                    String[] nums = s.split(",");
-                    if (nums.length != 3) return null;
-                    return ActionManager.goToPoseAction(
-                            Double.parseDouble(nums[0].trim()),
-                            Double.parseDouble(nums[1].trim()),
-                            Double.parseDouble(nums[2].trim())
-                    );
-                } catch (Exception e) {
-                    return null;
-                }
-            }
-            return null;
-        }));
-
-        MetaActionRegistry.register(new MiniAction("PRINT", obj -> {
-            if (obj instanceof Double) return new ActionManager.PrintAction((Double) obj);
-            if (obj instanceof Integer) return new ActionManager.PrintAction((Integer) obj);
-            if (obj instanceof Boolean) return new ActionManager.PrintAction((Boolean) obj);
-            return new ActionManager.PrintAction(obj != null ? obj.toString() : "");
-        }));
-
+        MetaActionRegistry.register(new MiniAction("PRINT", obj ->
+                new ActionManager.PrintAction(ActionUtils.asString(obj))));
 
         MetaActionRegistry.register(new MiniAction("PARALLEL", params -> {
-            if (params instanceof String) {
-                List<String> subActionStrings = MetaActionRegistry.splitByTopLevelCommas((String) params);
-                List<Action> actions = new ArrayList<>();
-                for (String sub : subActionStrings) {
-                    Action a = MetaActionRegistry.createAction(sub);
-                    if (a != null) actions.add(a);
-                }
-                return new ParallelAction(actions);
-            }
-            return null;
+            List<Action> actions = ActionUtils.asActions(params);
+            return actions != null ? new ParallelAction(actions) : null;
         }));
 
         MetaActionRegistry.register(new MiniAction("RACE", params -> {
-            if (params instanceof String) {
-                List<String> subActionStrings = MetaActionRegistry.splitByTopLevelCommas((String) params);
-                List<Action> actions = new ArrayList<>();
-                for (String sub : subActionStrings) {
-                    Action a = MetaActionRegistry.createAction(sub);
-                    if (a != null) actions.add(a);
-                }
-                return new RaceAction(actions);
-            }
-            return null;
+            List<Action> actions = ActionUtils.asActions(params);
+            return actions != null ? new RaceAction(actions) : null;
         }));
     }
+
+    private static Action goToPoseFactory(Object params) {
+        // Handle Case 1: Received a Pose2d object (Variable Lookup)
+        if (params instanceof Pose2d) {
+            Pose2d p = (Pose2d) params;
+            return ActionManager.goToPoseAction(p.x, p.y, p.heading);
+        }
+
+        // Handle Case 2: Received a String (Literal Parameters "x, y, h")
+        double[] d = ActionUtils.asDoubles(params, 3);
+        if (d != null) {
+            return ActionManager.goToPoseAction(d[0], d[1], d[2]);
+        }
+        return null;
+    }
+
     public static class PrintAction implements Action {
         String message;
 
@@ -80,9 +51,17 @@ public class ActionManager {
             this.message = message;
         }
 
-        public PrintAction (double n) {this.message = String.format(Locale.US, "%.2f", n);}
-        public PrintAction (int n) {this.message = String.format(Locale.US, "%d", n);}
-        public PrintAction (boolean b) {this.message = String.format(Locale.US, "%b", b);}
+        public PrintAction(double n) {
+            this.message = String.format(Locale.US, "%.2f", n);
+        }
+
+        public PrintAction(int n) {
+            this.message = String.format(Locale.US, "%d", n);
+        }
+
+        public PrintAction(boolean b) {
+            this.message = String.format(Locale.US, "%b", b);
+        }
 
 
         @Override
@@ -105,7 +84,6 @@ public class ActionManager {
 
         @Override
         public boolean run() {
-            //change this
             actions.removeIf(action -> !action.run());
             return !actions.isEmpty();
         }
@@ -125,7 +103,6 @@ public class ActionManager {
         @Override
         public boolean run() {
             boolean anyFinished = false;
-            //change this
             for (Action action : actions) {
                 if (!action.run()) {
                     anyFinished = true;
