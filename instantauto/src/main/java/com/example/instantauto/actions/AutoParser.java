@@ -74,25 +74,34 @@ public class AutoParser {
         }
 
         // 3. Parse Actions from the file
+        StringBuilder fileContent = new StringBuilder();
         try (BufferedReader reader = new BufferedReader(new FileReader(autoFile))) {
             String line;
-            int lineNumber = 0;
             while ((line = reader.readLine()) != null) {
-                lineNumber++;
                 line = stripComments(line).trim();
-                
-                // Skip empty lines and lines that are strictly configuration
-                if (line.isEmpty() || line.contains("=")) continue;
+                if (line.isEmpty()) continue;
 
-                Action action = MetaActionRegistry.createAction(line);
-                if (action != null) {
-                    actions.add(action);
-                } else {
-                    actionErrors.add("Line " + lineNumber + ": Unknown Action -> " + line);
+                // Handle top-level configuration in the auto file
+                if (line.contains("=")) {
+                    // This is still processed line-by-line to maintain simplicity for basic settings
+                    // but we skip it for the action sequence
+                    continue;
                 }
+                fileContent.append(line).append("\n");
             }
         } catch (IOException e) {
             actionErrors.add("Error reading auto file: " + e.getMessage());
+        }
+
+        List<String> actionStrings = MetaActionRegistry.splitByTopLevelCommas(fileContent.toString());
+        for (int i = 0; i < actionStrings.size(); i++) {
+            String actionStr = actionStrings.get(i);
+            Action action = MetaActionRegistry.createAction(actionStr);
+            if (action != null) {
+                actions.add(action);
+            } else {
+                actionErrors.add("Action " + (i + 1) + ": Unknown Action -> " + actionStr);
+            }
         }
     }
 

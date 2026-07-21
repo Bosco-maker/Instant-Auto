@@ -94,26 +94,42 @@ public class MetaActionRegistry {
                 
                 if (firstBrace != -1 && matchingBrace != -1) {
                     String trueBlock = line.substring(firstBrace + 1, matchingBrace).trim();
-                    String falseBlock = "";
+                    final List<Action> trueActions = parseActionsFromBlock(trueBlock);
                     
                     String rest = line.substring(matchingBrace + 1).trim();
                     if (rest.startsWith("else")) {
-                        int elseBrace = rest.indexOf("{");
-                        int elseMatchingBrace = findMatching(rest, elseBrace, '{', '}');
-                        if (elseBrace != -1 && elseMatchingBrace != -1) {
-                            falseBlock = rest.substring(elseBrace + 1, elseMatchingBrace).trim();
+                        String elseRest = rest.substring(4).trim();
+                        if (elseRest.startsWith("if")) {
+                            // Recursively handle 'else if'
+                            Action elseIfAction = createAction(elseRest);
+                            return () -> {
+                                if (evaluateCondition(condition)) {
+                                    for (Action a : trueActions) if (a != null) a.run();
+                                } else {
+                                    if (elseIfAction != null) elseIfAction.run();
+                                }
+                                return true;
+                            };
+                        } else {
+                            // Handle 'else { ... }'
+                            int elseBrace = rest.indexOf("{");
+                            int elseMatchingBrace = findMatching(rest, elseBrace, '{', '}');
+                            if (elseBrace != -1 && elseMatchingBrace != -1) {
+                                String falseBlock = rest.substring(elseBrace + 1, elseMatchingBrace).trim();
+                                final List<Action> falseActions = parseActionsFromBlock(falseBlock);
+                                return () -> {
+                                    boolean result = evaluateCondition(condition);
+                                    List<Action> branch = result ? trueActions : falseActions;
+                                    for (Action a : branch) if (a != null) a.run();
+                                    return true;
+                                };
+                            }
                         }
                     }
                     
-                    final String finalCond = condition;
-                    final List<Action> trueActions = parseActionsFromBlock(trueBlock);
-                    final List<Action> falseActions = parseActionsFromBlock(falseBlock);
-                    
                     return () -> {
-                        boolean result = evaluateCondition(finalCond);
-                        List<Action> branch = result ? trueActions : falseActions;
-                        for (Action a : branch) {
-                            if (a != null) a.run();
+                        if (evaluateCondition(condition)) {
+                            for (Action a : trueActions) if (a != null) a.run();
                         }
                         return true;
                     };
@@ -256,13 +272,15 @@ public class MetaActionRegistry {
         return new ArrayList<>(loadErrors);
     }
 
-    private static List<String> splitByTopLevelCommas(String content) {
+    public static List<String> splitByTopLevelCommas(String content) {
         List<String> result = new ArrayList<>();
         StringBuilder current = new StringBuilder();
         int parenLevel = 0;
         int braceLevel = 0;
         
-        for (char c : content.toCharArray()) {
+        char[] chars = content.toCharArray();
+        for (int i = 0; i < chars.length; i++) {
+            char c = chars[i];
             if (c == '(') parenLevel++;
             else if (c == ')') parenLevel--;
             else if (c == '{') braceLevel++;
@@ -270,6 +288,24 @@ public class MetaActionRegistry {
             
             // Split by comma, newline, or semicolon if at top level
             boolean isSeparator = (c == ',' || c == '\n' || c == ';') && parenLevel == 0 && braceLevel == 0;
+
+            if (isSeparator) {
+                // Peek ahead to see if the next non-whitespace is 'else'
+                int j = i + 1;
+                while (j < chars.length && Character.isWhitespace(chars[j])) j++;
+                if (j + 3 < chars.length && 
+                    chars[j] == 'e' && chars[j+1] == 'l' && chars[j+2] == 's' && chars[j+3] == 'e') {
+                    isSeparator = false;
+                }
+                
+                // Don't split on newline if current statement is 'if' or 'else' and needs a brace
+                if (isSeparator && c == '\n') {
+                    String trimmed = current.toString().trim();
+                    if ((trimmed.startsWith("if") || trimmed.endsWith("else")) && !trimmed.contains("{")) {
+                        isSeparator = false;
+                    }
+                }
+            }
 
             if (isSeparator) {
                 String s = current.toString().trim();
