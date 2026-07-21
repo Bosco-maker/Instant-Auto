@@ -24,4 +24,5 @@ PARALLEL(
         GO.TO.POSE2D(BlueGoalPose)
     )
     )
-    )
+
+WAIT(5)

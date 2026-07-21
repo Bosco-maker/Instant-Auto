@@ -27,6 +27,11 @@ public class ActionManager {
             List<Action> actions = ActionUtils.asActions(params);
             return actions != null ? new RaceAction(actions) : null;
         }));
+
+        MetaActionRegistry.register(new MiniAction("WAIT", params -> {
+            double[] d = ActionUtils.asDoubles(params, 1);
+            return d != null ? new ActionManager.PrintAction(d[0]) : null;
+        }));
     }
 
     private static Action goToPoseFactory(Object params) {
@@ -42,6 +47,10 @@ public class ActionManager {
             return ActionManager.goToPoseAction(d[0], d[1], d[2]);
         }
         return null;
+    }
+
+    public static Action goToPoseAction(double x, double y, double h) {
+        return new PrintAction(String.format(Locale.US, "GOING.TO.POSE(%.2f, %.2f, %.2f)", x, y, h));
     }
 
     public static class PrintAction implements Action {
@@ -112,8 +121,15 @@ public class ActionManager {
         }
     }
 
-
-    public static Action goToPoseAction(double x, double y, double h) {
-        return new PrintAction(String.format(Locale.US, "GOING.TO.POSE(%.2f, %.2f, %.2f)", x, y, h));
+    public static class WaitAction implements Action {
+        private final double seconds;
+        public WaitAction(double seconds) {
+            this.seconds = seconds;
+        }
+        @Override
+        public boolean run() {
+            System.out.println("Waiting for " + seconds + " seconds...");
+            return false;
+        }
     }
 }
