@@ -4,6 +4,8 @@ import com.example.instantauto.actions.Action;
 import com.example.instantauto.actions.AutoParser;
 import com.example.instantauto.actions.MetaActionRegistry;
 import com.example.instantauto.configs.MetaFieldRegistry;
+import com.example.purejava.action.ActionManager;
+import com.example.purejava.configs.ConfigManager;
 
 import java.io.File;
 import java.util.List;
@@ -29,10 +31,9 @@ public class AutoRuntime {
     private static void runRuntime() {
         System.out.println("=== Robot Autonomous Runtime ===");
 
+        ActionManager.init();
+        ConfigManager.init();
         AutoParser autoParser = new AutoParser(GENERAL_SETTINGS, META_ACTION_SETTINGS);
-
-        // Register custom conditions
-        MetaActionRegistry.registerCondition("is_active", () -> true);
 
         // 1. Scan for [ACTIVE] files
         List<File> activeAutos = autoParser.findActiveAutos(TEXTFILES_DIR);

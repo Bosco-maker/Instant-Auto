@@ -1,14 +1,12 @@
 package com.example.instantauto.actions;
 
 import com.example.instantauto.configs.MetaFieldRegistry;
-import com.example.instantauto.configs.types.MetaField;
-import com.example.instantauto.configs.types.Pose2d;
+import com.example.instantauto.configs.MetaField;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,42 +20,6 @@ public class MetaActionRegistry {
     private static final Map<String, MetaAction> registry = new HashMap<>();
     private static final Map<String, BooleanSupplier> conditionSuppliers = new HashMap<>();
     private static final List<String> loadErrors = new ArrayList<>();
-
-    static {
-        // Register Primitives (Mini Actions)
-        register(new MiniAction("GO.TO.POSE2D", params -> {
-            // Handle Case 1: Received a Pose2d object (Variable Lookup)
-            if (params instanceof Pose2d) {
-                Pose2d p = (Pose2d) params;
-                return ActionManager.goToPoseAction(p.x, p.y, p.heading);
-            }
-            
-            // Handle Case 2: Received a String (Literal Parameters "x, y, h")
-            if (params instanceof String) {
-                try {
-                    String s = (String) params;
-                    if (s.isEmpty()) return null;
-                    String[] nums = s.split(",");
-                    if (nums.length != 3) return null;
-                    return ActionManager.goToPoseAction(
-                        Double.parseDouble(nums[0].trim()),
-                        Double.parseDouble(nums[1].trim()),
-                        Double.parseDouble(nums[2].trim())
-                    );
-                } catch (Exception e) {
-                    return null;
-                }
-            }
-            return null;
-        }));
-
-        register(new MiniAction("PRINT", obj -> {
-            if (obj instanceof Double) return new ActionManager.PrintAction((Double) obj);
-            if (obj instanceof Integer) return new ActionManager.PrintAction((Integer) obj);
-            if (obj instanceof Boolean) return new ActionManager.PrintAction((Boolean) obj);
-            return new ActionManager.PrintAction(obj != null ? obj.toString() : "");
-        }));
-    }
 
     public static void register(MetaAction action) {
         registry.put(action.getIdentifier().toUpperCase(), action);

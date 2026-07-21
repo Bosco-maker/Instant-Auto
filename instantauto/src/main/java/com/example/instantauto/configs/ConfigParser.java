@@ -1,8 +1,5 @@
 package com.example.instantauto.configs;
 
-import com.example.instantauto.actions.MetaActionRegistry;
-import com.example.instantauto.configs.types.MetaField;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;

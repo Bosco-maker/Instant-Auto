@@ -1,4 +1,6 @@
-package com.example.instantauto.configs.types;
+package com.example.purejava.configs;
+
+import com.example.instantauto.configs.MetaField;
 
 import java.util.Locale;
 

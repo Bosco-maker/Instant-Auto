@@ -1,9 +1,5 @@
 package com.example.instantauto.configs;
 
-import com.example.instantauto.configs.types.IntakeSetting;
-import com.example.instantauto.configs.types.MetaField;
-import com.example.instantauto.configs.types.Pose2d;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -26,23 +22,6 @@ public class MetaFieldRegistry {
 
     private static final Map<String, ConfigEntry<?>> entries = new HashMap<>();
     private static final Map<Class<?>, MetaField<?>> typeDefinitions = new HashMap<>();
-
-    static {
-        // Register type definitions
-        registerType(new Pose2d(0, 0, 0));
-        registerType(new IntakeSetting("", false, 0));
-
-        // Register specific fields with default values
-        registerField("maxPower", Double.class, 0.0);
-        registerField("redGoalPose", Pose2d.class, new Pose2d(-72, 48, 0));
-        registerField("blueGoalPose", Pose2d.class, new Pose2d(72, 48, 0));
-        registerField("intakeActive", IntakeSetting.class, new IntakeSetting("NORMAL", true, 0.8));
-        registerField("motorName", String.class, "motorName");
-        
-        // New required fields for Auto
-        registerField("Title", String.class, "");
-        registerField("Starting", String.class, "");
-    }
 
     public static void registerType(MetaField<?> typeDef) {
         typeDefinitions.put(typeDef.getClass(), typeDef);

@@ -1,4 +1,4 @@
-package com.example.instantauto.configs.types;
+package com.example.instantauto.configs;
 
 /**
  * Interface for complex data types in the robot configuration.
