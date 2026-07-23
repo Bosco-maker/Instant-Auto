@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.instantauto.actions.ConfigErrorFilteringTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-07-22T18:32:39.432Z" hostname="BOSCOT" time="0.023">
+  <properties/>
+  <testcase name="testUnknownFormatErrorsInConfigLogs" classname="com.example.instantauto.actions.ConfigErrorFilteringTest" time="0.023"/>
+  <system-out><![CDATA[Config Logs: []
+Action Errors: [Action 1: Unknown Action -> ACTION1(), Action 2: Unknown Action -> invalid line]
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

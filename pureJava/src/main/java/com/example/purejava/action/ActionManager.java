@@ -1,7 +1,7 @@
 package com.example.purejava.action;
 
 import com.example.instantauto.actions.Action;
-import com.example.instantauto.actions.MetaActionRegistry;
+import com.example.instantauto.actions.UserActionRegistry;
 import com.example.instantauto.actions.MiniAction;
 import com.example.purejava.configs.Pose2d;
 
@@ -13,25 +13,27 @@ import java.util.Locale;
 public class ActionManager {
     public static void init() {
         // Register Primitives (Mini Actions)
-        MetaActionRegistry.register(new MiniAction("GO.TO.POSE2D", ActionManager::goToPoseFactory));
+        UserActionRegistry.register(new MiniAction("GO.TO.POSE2D", ActionManager::goToPoseFactory));
 
-        MetaActionRegistry.register(new MiniAction("PRINT", obj ->
+        UserActionRegistry.register(new MiniAction("PRINT", obj ->
                 new ActionManager.PrintAction(ActionUtils.asString(obj))));
 
-        MetaActionRegistry.register(new MiniAction("PARALLEL", params -> {
+        UserActionRegistry.register(new MiniAction("PARALLEL", params -> {
             List<Action> actions = ActionUtils.asActions(params);
             return actions != null ? new ParallelAction(actions) : null;
         }));
 
-        MetaActionRegistry.register(new MiniAction("RACE", params -> {
+        UserActionRegistry.register(new MiniAction("RACE", params -> {
             List<Action> actions = ActionUtils.asActions(params);
             return actions != null ? new RaceAction(actions) : null;
         }));
 
-        MetaActionRegistry.register(new MiniAction("WAIT", params -> {
+        UserActionRegistry.register(new MiniAction("WAIT", params -> {
             double[] d = ActionUtils.asDoubles(params, 1);
             return d != null ? new ActionManager.PrintAction(d[0]) : null;
         }));
+
+        UserActionRegistry.register(new MiniAction("HELLO.WORLD", params ->new PrintAction("Hello World!")));
     }
 
     private static Action goToPoseFactory(Object params) {

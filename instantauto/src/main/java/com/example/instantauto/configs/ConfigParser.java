@@ -13,7 +13,7 @@ public class ConfigParser {
     private final List<String> logs = new ArrayList<>();
 
     /**
-     * Parses the configuration file and updates registered fields.
+     * Parses the entire configuration file and updates registered fields.
      * Includes validation to report unknown keywords or syntax errors.
      */
     public void parseConfig(String filePath) {
@@ -38,35 +38,43 @@ public class ConfigParser {
             logs.add("Error reading file: " + e.getMessage());
         }
     }
-
+    // Remove comments starting with // or #
     private String stripComments(String line) {
         int commentIndex = line.indexOf("//");
+        if (commentIndex != -1) {
+            line = line.substring(0, commentIndex);
+        }
+        commentIndex = line.indexOf("#");
         if (commentIndex != -1) {
             line = line.substring(0, commentIndex);
         }
         return line;
     }
 
-    private void handleConfigLine(String line, int lineNumber) {
+    public void handleConfigLine(String line, int lineNumber) {
+        //if a line has =, it is a variable assignment
         String[] parts = line.split("=", 2);
         String key = parts[0].trim();
         String value = parts[1].trim();
 
+        // Check if the key is already registered internally or by text files
         MetaFieldRegistry.ConfigEntry<?> entry = MetaFieldRegistry.getEntry(key);
         if (entry == null) {
+            //if not, add it as local variables
             addLocalVariables(key, value, lineNumber);
             return;
         }
-
+        //Get if the variable is a simple type or a user-defined type
         MetaField<?> typeDef = MetaFieldRegistry.getTypeDefinition(entry.type);
         if (typeDef == null) {
+            //if return null, it is a simple type
             Object parsedValue = convertSimpleType(value, entry.type, lineNumber);
             if (parsedValue != null) {
                 updateEntryValue(entry, parsedValue);
             }
             return;
         }
-
+        //if not null, it is a user-defined type
         Object parsedValue = parseMetaFieldValue(value, typeDef, lineNumber);
         if (parsedValue != null) {
             updateEntryValue(entry, parsedValue);
@@ -75,6 +83,7 @@ public class ConfigParser {
 
     private Object parseMetaFieldValue(String value, MetaField<?> typeDef, int lineNumber) {
         String identifier = typeDef.getIdentifier();
+        //User defined variable must have "()" for entering parameters
         if (!value.startsWith(identifier + "(") || !value.endsWith(")")) {
             logs.add("Line " + lineNumber + ": Syntax Error. Expected " + identifier + "(...) but got '" + value + "'");
             return null;
@@ -83,18 +92,18 @@ public class ConfigParser {
         String params = value.substring(identifier.length() + 1, value.length() - 1);
         String[] paramParts = splitParams(params);
         Class<?>[] expectedTypes = typeDef.getParamTypes();
-
+        //Check if the number of parameters matches the expected types
         if (paramParts.length != expectedTypes.length) {
             logs.add("Line " + lineNumber + ": Parameter count mismatch for " + identifier + ". Expected " + expectedTypes.length + " but got " + paramParts.length);
             return null;
         }
-
+        //Deal with individual parameters
         Object[] args = new Object[expectedTypes.length];
         for (int i = 0; i < expectedTypes.length; i++) {
             args[i] = convertSimpleType(paramParts[i].trim(), expectedTypes[i], lineNumber);
             if (args[i] == null) return null;
         }
-
+        //Return a complete object with the parameters
         try {
             return typeDef.getClass().getConstructor(expectedTypes).newInstance(args);
         } catch (Exception e) {
@@ -102,7 +111,7 @@ public class ConfigParser {
             return null;
         }
     }
-
+    //Split the parameters from user-defined type (like pose2d(10, 20, 30) )into individual strings
     private String[] splitParams(String params) {
         List<String> result = new ArrayList<>();
         StringBuilder current = new StringBuilder();
@@ -123,7 +132,7 @@ public class ConfigParser {
         result.add(current.toString().trim());
         return result.toArray(new String[0]);
     }
-
+    //Parse strings into simple types like int, double, bool, string
     private Object convertSimpleType(String val, Class<?> type, int lineNumber) {
         try {
             if (type == Double.class || type == double.class) {

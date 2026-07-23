@@ -1,7 +1,7 @@
 package com.example.purejava.action;
 
 import com.example.instantauto.actions.Action;
-import com.example.instantauto.actions.MetaActionRegistry;
+import com.example.instantauto.actions.UserActionRegistry;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,10 +40,10 @@ public class ActionUtils {
      */
     public static List<Action> asActions(Object params) {
         if (params instanceof String) {
-            List<String> subActionStrings = MetaActionRegistry.splitByTopLevelCommas((String) params);
+            List<String> subActionStrings = UserActionRegistry.splitByTopLevelCommas((String) params);
             List<Action> actions = new ArrayList<>();
             for (String sub : subActionStrings) {
-                Action a = MetaActionRegistry.createAction(sub);
+                Action a = UserActionRegistry.createAction(sub);
                 if (a != null) actions.add(a);
             }
             return actions;

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.instantauto.integration.IntegrationTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-07-22T18:32:39.476Z" hostname="BOSCOT" time="0.008">
+  <properties/>
+  <testcase name="testFullParsingAndExecution" classname="com.example.instantauto.integration.IntegrationTest" time="0.008"/>
+  <system-out><![CDATA[Variable Entry: 0.8 PRINT
+Auto Title: TestAuto
+Variable Entry: 1.0 PRINT
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

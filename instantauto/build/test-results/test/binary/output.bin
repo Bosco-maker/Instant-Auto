@@ -1,0 +1,9 @@
+Config Logs: []
+bAction Errors: [Action 1: Unknown Action -> ACTION1(), Action 2: Unknown Action -> invalid line]
+Variable Entry: Hello PRINT
+
+	Variable Entry: 0.8 PRINT
+
+	Auto Title: TestAuto
+
+	Variable Entry: 1.0 PRINT

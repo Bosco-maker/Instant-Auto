@@ -2,7 +2,7 @@ package com.example.purejava.configs;
 
 import static com.example.instantauto.configs.MetaFieldRegistry.registerField;
 import static com.example.instantauto.configs.MetaFieldRegistry.registerType;
-import static com.example.instantauto.actions.MetaActionRegistry.registerCondition;
+import static com.example.instantauto.actions.UserActionRegistry.registerCondition;
 
 public class ConfigManager {
     public static void init() {

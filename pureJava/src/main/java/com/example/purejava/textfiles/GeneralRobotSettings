@@ -4,3 +4,4 @@ IntakeActive = intakeSetting(IDLE, false, 0.6)
 // This is a full line comment
 maxPower = 1.0 // This is a trailing comments
 motorName = flywheelMotor
+scorePose = pose2d(72, 67, 0)

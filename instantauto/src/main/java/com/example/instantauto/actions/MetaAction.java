@@ -1,7 +1,10 @@
 package com.example.instantauto.actions;
 
 /**
- * Interface for actions that can be created with parameters from a text file.
+ * Interface for both:
+ * actions that can be created with parameters from a text file.
+ * and
+ * actions that internally created in java
  */
 public interface MetaAction {
     /**

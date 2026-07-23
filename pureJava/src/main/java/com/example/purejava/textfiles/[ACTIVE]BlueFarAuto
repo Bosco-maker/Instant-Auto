@@ -8,21 +8,15 @@ is_blue = true
 RedGoalPose = pose2d(67, 0, 0)
 BlueGoalPose = pose2d(0, 67, 0)
 
-if (is_blue) {
-    PRINT(it_is_blue)
-} else if (is_active) {
-    PRINT(it_is_not_blue)
-} else {
-    PRINT(it_is_not_active)
-}
-
 PARALLEL(
-    PRINT(six),
-    PRINT(seven),
-    RACE(
-        GO.TO.POSE2D(RedGoalPose)
-        GO.TO.POSE2D(BlueGoalPose)
-    )
+    if (is_blue) {
+        PRINT(it_is_blue)
+    } else if (is_active) {
+        PRINT(it_is_not_blue)
+    } else {
+        PRINT(it_is_not_active)
+    },
+    HELLO.WORLD,
     )
 
 WAIT(5)

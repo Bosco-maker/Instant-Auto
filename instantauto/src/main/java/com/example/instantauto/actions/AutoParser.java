@@ -53,11 +53,29 @@ public class AutoParser {
         // 1. Parse General Settings (Base Config)
         configEngine.parseConfig(generalSettingsPath);
 
-        // 2. Parse Auto-specific configs (Overrides)
-        configEngine.parseConfig(autoFile.getAbsolutePath());
-
         // Initialize Registry from settings
-        MetaActionRegistry.loadSettings(metaActionSettingsPath);
+        UserActionRegistry.loadSettings(metaActionSettingsPath);
+
+        // 2. Parse both Configs AND Actions from the auto file in one pass
+        StringBuilder actionContent = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new FileReader(autoFile))) {
+            String line;
+            int lineNumber = 0;
+            while ((line = reader.readLine()) != null) {
+                lineNumber++;
+                line = stripComments(line).trim();
+                if (line.isEmpty()) continue;
+
+                // Handle top-level configuration in the auto file
+                if (line.contains("=")) {
+                    configEngine.handleConfigLine(line, lineNumber);
+                    continue;
+                }
+                actionContent.append(line).append("\n");
+            }
+        } catch (IOException e) {
+            actionErrors.add("Error reading auto file: " + e.getMessage());
+        }
 
         // --- Post-parsing Validation & Logic ---
         
@@ -73,30 +91,12 @@ public class AutoParser {
             System.out.println("Auto Title: " + titleEntry.value);
         }
 
-        // 3. Parse Actions from the file
-        StringBuilder fileContent = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new FileReader(autoFile))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                line = stripComments(line).trim();
-                if (line.isEmpty()) continue;
-
-                // Handle top-level configuration in the auto file
-                if (line.contains("=")) {
-                    // This is still processed line-by-line to maintain simplicity for basic settings
-                    // but we skip it for the action sequence
-                    continue;
-                }
-                fileContent.append(line).append("\n");
-            }
-        } catch (IOException e) {
-            actionErrors.add("Error reading auto file: " + e.getMessage());
-        }
-
-        List<String> actionStrings = MetaActionRegistry.splitByTopLevelCommas(fileContent.toString());
+        // 3. Parse Action strings into actual Action objects
+        List<String> actionStrings = UserActionRegistry.splitByTopLevelCommas(actionContent.toString());
         for (int i = 0; i < actionStrings.size(); i++) {
-            String actionStr = actionStrings.get(i);
-            Action action = MetaActionRegistry.createAction(actionStr);
+            String actionStr = actionStrings.get(i).trim();
+            if (actionStr.isEmpty()) continue;
+            Action action = UserActionRegistry.createAction(actionStr);
             if (action != null) {
                 actions.add(action);
             } else {

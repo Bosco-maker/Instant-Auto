@@ -2,7 +2,7 @@ package com.example.purejava;
 
 import com.example.instantauto.actions.Action;
 import com.example.instantauto.actions.AutoParser;
-import com.example.instantauto.actions.MetaActionRegistry;
+import com.example.instantauto.actions.UserActionRegistry;
 import com.example.instantauto.configs.MetaFieldRegistry;
 import com.example.purejava.action.ActionManager;
 import com.example.purejava.configs.ConfigManager;
@@ -14,7 +14,7 @@ import java.util.Scanner;
 public class AutoRuntime {
     private static final String TEXTFILES_DIR = "pureJava/src/main/java/com/example/purejava/textfiles/";
     private static final String GENERAL_SETTINGS = TEXTFILES_DIR + "GeneralRobotSettings";
-    private static final String META_ACTION_SETTINGS = TEXTFILES_DIR + "MetaActionSettings";
+    private static final String META_ACTION_SETTINGS = TEXTFILES_DIR + "UserActionSettings";
 
     public static void main(String[] args) {
         try {
@@ -61,7 +61,7 @@ public class AutoRuntime {
         autoParser.parse(selectedAuto);
 
         // 4. Show Errors/Logs from auto action parsing
-        List<String> loadErrors = MetaActionRegistry.getLoadErrors();
+        List<String> loadErrors = UserActionRegistry.getLoadErrors();
         if (!loadErrors.isEmpty()) {
             System.out.println("\n[BIG ACTION ERRORS/WARNINGS]:");
             for (String log : loadErrors) System.out.println("  " + log);

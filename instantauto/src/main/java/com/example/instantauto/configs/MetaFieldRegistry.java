@@ -19,8 +19,9 @@ public class MetaFieldRegistry {
             this.value = defaultValue;
         }
     }
-
+    //Here stores all your variables (MetaField) from the text file and java
     private static final Map<String, ConfigEntry<?>> entries = new HashMap<>();
+    //Here stores all the definitions of different variable types (MetaField)
     private static final Map<Class<?>, MetaField<?>> typeDefinitions = new HashMap<>();
 
     public static void registerType(MetaField<?> typeDef) {
@@ -48,5 +49,10 @@ public class MetaFieldRegistry {
             identifiers.add(entry.fieldName);
         }
         return identifiers;
+    }
+    //clear out all the variables and types to prevent leaking into next opMode
+    public static void clear() {
+        entries.clear();
+        typeDefinitions.clear();
     }
 }

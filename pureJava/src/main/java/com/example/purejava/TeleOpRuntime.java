@@ -2,6 +2,7 @@ package com.example.purejava;
 
 import com.example.instantauto.configs.ConfigParser;
 import com.example.instantauto.configs.MetaFieldRegistry;
+import com.example.purejava.configs.ConfigManager;
 
 import java.util.List;
 
@@ -16,6 +17,7 @@ public class TeleOpRuntime {
         }
 
         ConfigParser engine = new ConfigParser();
+        ConfigManager.init();
         String configPath = "pureJava/src/main/java/com/example/purejava/textfiles/GeneralRobotSettings";
 
         System.out.println("Reading config from: " + configPath);
