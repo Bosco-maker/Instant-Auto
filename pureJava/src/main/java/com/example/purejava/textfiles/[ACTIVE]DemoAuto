@@ -1,0 +1,8 @@
+Title=Red w/ Frogs
+Starting=RED.FAR
+ScorePose = pose2d(72, 67, 0)
+RED.LOAD.INTAKE
+RED.THIRD.INTAKE
+GO.TO.POSE2D(67,67,90)
+PRINT(scorePose)
+SIX.SEVEN.ACTION

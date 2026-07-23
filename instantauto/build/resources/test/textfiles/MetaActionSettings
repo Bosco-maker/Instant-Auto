@@ -1,0 +1,4 @@
+MACRO1={
+    PRINT("Running Macro1"),
+    PRINT(maxPower)
+}

@@ -1,0 +1,22 @@
+Title=Blue Far
+Starting=BLUE.FAR
+
+BLUE.LOAD.INTAKE
+BLUE.THIRD.INTAKE
+is_blue = true
+
+RedGoalPose = pose2d(67, 0, 0)
+BlueGoalPose = pose2d(0, 67, 0)
+
+PARALLEL(
+    if (is_blue) {
+        PRINT(it_is_blue)
+    } else if (is_active) {
+        PRINT(it_is_not_blue)
+    } else {
+        PRINT(it_is_not_active)
+    },
+    HELLO.WORLD,
+    )
+
+WAIT(5)

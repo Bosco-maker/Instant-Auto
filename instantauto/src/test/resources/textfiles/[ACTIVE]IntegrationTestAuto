@@ -1,0 +1,18 @@
+// Integration Test Auto
+maxPower = 1.0
+is_blue = true
+
+if (is_blue) {
+    PRINT("BLUE BRANCH"),
+    MACRO1()
+} else {
+    PRINT("RED BRANCH")
+}
+
+is_blue = false
+
+if (is_blue) {
+    PRINT("BLUE BRANCH 2")
+} else {
+    PRINT("RED BRANCH 2")
+}

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.instantauto.actions.MetaActionRegistryTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-07-22T18:32:39.458Z" hostname="BOSCOT" time="0.011">
+  <properties/>
+  <testcase name="testEvaluateCondition" classname="com.example.instantauto.actions.MetaActionRegistryTest" time="0.003"/>
+  <testcase name="testSplitByTopLevelCommas" classname="com.example.instantauto.actions.MetaActionRegistryTest" time="0.0"/>
+  <testcase name="testCreateActionWithVariable" classname="com.example.instantauto.actions.MetaActionRegistryTest" time="0.008"/>
+  <system-out><![CDATA[Variable Entry: Hello PRINT
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
