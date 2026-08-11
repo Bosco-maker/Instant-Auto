@@ -38,43 +38,24 @@ public class UserAction implements MetaAction {
         }
 
         return new Action() {
+            private int currentIndex = 0;
+
             @Override
             public boolean run() {
-                for (Action a : actions) {
-                    a.run();
+                if (currentIndex >= actions.size()) return false;
+
+                Action current = actions.get(currentIndex);
+                if (current == null || !current.run()) {
+                    currentIndex++;
                 }
-                return false;
+
+                return currentIndex < actions.size();
             }
         };
     }
 
     @Override
     public Action create(String params) {
-        if (hasError) {
-            return new Action() {
-                @Override
-                public boolean run() {
-                    return false;
-                }
-            };
-        }
-
-        List<Action> actions = new java.util.ArrayList<>();
-        for (String line : subActionLines) {
-            Action a = UserActionRegistry.createAction(line);
-            if (a != null) {
-                actions.add(a);
-            }
-        }
-
-        return new Action() {
-            @Override
-            public boolean run() {
-                for (Action a : actions) {
-                    a.run();
-                }
-                return false;
-            }
-        };
+        return create((Object) params);
     }
 }

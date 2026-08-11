@@ -5,18 +5,40 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public class MetaFieldRegistry {
-    
+
     public static class ConfigEntry<T> {
         public final String fieldName;
         public final Class<T> type;
-        public T value;
+        private T value;
+        private Supplier<T> supplier;
 
         public ConfigEntry(String fieldName, Class<T> type, T defaultValue) {
             this.fieldName = fieldName;
             this.type = type;
             this.value = defaultValue;
+            this.supplier = null;
+        }
+
+        public ConfigEntry(String fieldName, Class<T> type, Supplier<T> supplier) {
+            this.fieldName = fieldName;
+            this.type = type;
+            this.value = null;
+            this.supplier = supplier;
+        }
+
+        public T getValue() {
+            if (supplier != null) {
+                return supplier.get();
+            }
+            return value;
+        }
+
+        public void setValue(T newValue) {
+            this.value = newValue;
+            this.supplier = null;
         }
     }
     //Here stores all your variables (MetaField) from the text file and java
@@ -30,6 +52,14 @@ public class MetaFieldRegistry {
 
     public static <T> void registerField(String fieldName, Class<T> type, T defaultValue) {
         entries.put(fieldName.toLowerCase(), new ConfigEntry<>(fieldName, type, defaultValue));
+    }
+
+    public static <T> void registerField(String fieldName, Class<T> type, Supplier<T> supplier) {
+        entries.put(fieldName.toLowerCase(), new ConfigEntry<>(fieldName, type, supplier));
+    }
+
+    public static <T> void registerSupplier(String fieldName, Class<T> type, Supplier<T> supplier) {
+        entries.put(fieldName.toLowerCase(), new ConfigEntry<>(fieldName, type, supplier));
     }
 
     public static ConfigEntry<?> getEntry(String fieldName) {

@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
+import java.util.function.Function;
 
 /**
  * Registry for MetaActions. Handles both primitive "Mini Actions" and
@@ -22,8 +23,21 @@ public class UserActionRegistry {
     private static final Map<String, BooleanSupplier> conditionSuppliers = new HashMap<>();
     private static final List<String> loadErrors = new ArrayList<>();
 
+    // Callback for fusing nested actions (e.g., inside if/else blocks)
+    // Set by the consuming module (e.g., TeamCode) which has access to MecanumDrive
+    private static Function<List<Action>, List<Action>> actionMerger = actions -> actions;
+
     public static void register(MetaAction action) {
         registry.put(action.getIdentifier().toUpperCase(), action);
+    }
+
+    /**
+     * Sets a function to merge/fuse nested actions (e.g., consecutive BuilderActions in if/else blocks).
+     * Should be called during initialization by the module that has access to MecanumDrive.
+     * @param merger Function that takes a list of actions and returns a fused list
+     */
+    public static void setActionMerger(Function<List<Action>, List<Action>> merger) {
+        actionMerger = merger;
     }
 
     /**
@@ -63,7 +77,7 @@ public class UserActionRegistry {
                         Object val = parseValue(valueExpr);
                         MetaFieldRegistry.ConfigEntry entry = MetaFieldRegistry.getEntry(varName);
                         if (entry != null) {
-                            entry.value = val;
+                            entry.setValue(val);
                         }
                         return false;
                     }
@@ -77,10 +91,10 @@ public class UserActionRegistry {
             int matchingParen = findMatching(line, firstParen, '(', ')');
             if (firstParen != -1 && matchingParen != -1) {
                 final String condition = line.substring(firstParen + 1, matchingParen).trim();
-                
+
                 int firstBrace = line.indexOf("{", matchingParen);
                 int matchingBrace = findMatching(line, firstBrace, '{', '}');
-                
+
                 if (firstBrace != -1 && matchingBrace != -1) {
                     final List<Action> trueActions = parseActionsFromBlock(line.substring(firstBrace + 1, matchingBrace).trim());
                     String restStr = line.substring(matchingBrace + 1).trim();
@@ -89,29 +103,47 @@ public class UserActionRegistry {
                     }
                     final String rest = restStr;
                     return new Action() {
+                        private boolean initialized = false;
+                        private boolean conditionResult = false;
+                        private List<Action> targetActions = null;
+                        private int currentIndex = 0;
+
                         @Override
                         public boolean run() {
-                            if (evaluateCondition(condition)) {
-                                for (Action a : trueActions) if (a != null) a.run();
-                            } else if (!rest.isEmpty()) {
-                                String elseRest = rest.substring(4).trim();
-                                if (elseRest.toLowerCase().startsWith("if")) {
-                                    Action elseIfAction = createAction(elseRest);
-                                    if (elseIfAction != null) elseIfAction.run();
-                                } else {
-                                    // Handle 'else { ... }'
-                                    int elseBrace = rest.indexOf("{");
-                                    if (elseBrace != -1) {
-                                        int elseMatchingBrace = findMatching(rest, elseBrace, '{', '}');
-                                        if (elseMatchingBrace != -1) {
-                                            String falseBlock = rest.substring(elseBrace + 1, elseMatchingBrace).trim();
-                                            List<Action> falseActions = parseActionsFromBlock(falseBlock);
-                                            for (Action a : falseActions) if (a != null) a.run();
+                            if (!initialized) {
+                                conditionResult = evaluateCondition(condition);
+                                if (conditionResult) {
+                                    targetActions = trueActions;
+                                } else if (!rest.isEmpty()) {
+                                    String elseRest = rest.substring(4).trim();
+                                    if (elseRest.toLowerCase().startsWith("if")) {
+                                        // This is tricky: we might need to wrap the else-if as well
+                                        Action elseIfAction = createAction(elseRest);
+                                        targetActions = java.util.Collections.singletonList(elseIfAction);
+                                    } else {
+                                        int elseBrace = rest.indexOf("{");
+                                        if (elseBrace != -1) {
+                                            int elseMatchingBrace = findMatching(rest, elseBrace, '{', '}');
+                                            if (elseMatchingBrace != -1) {
+                                                String falseBlock = rest.substring(elseBrace + 1, elseMatchingBrace).trim();
+                                                targetActions = parseActionsFromBlock(falseBlock);
+                                            }
                                         }
                                     }
                                 }
+                                initialized = true;
                             }
-                            return false;
+
+                            if (targetActions == null || currentIndex >= targetActions.size()) {
+                                return false;
+                            }
+
+                            Action current = targetActions.get(currentIndex);
+                            if (current == null || !current.run()) {
+                                currentIndex++;
+                            }
+
+                            return currentIndex < targetActions.size();
                         }
                     };
                 }
@@ -132,14 +164,14 @@ public class UserActionRegistry {
 
             if (meta == null) return null;
 
-            // Try to resolve as a variable first
-            MetaFieldRegistry.ConfigEntry<?> variableEntry = MetaFieldRegistry.getEntry(paramsLine);
-            if (variableEntry != null && variableEntry.value != null) {
-                paramObject = variableEntry.value;
-                System.out.println("Variable Entry: " + paramObject + " " + name);
-
-            }
-            return meta.create(paramObject != null ? paramObject : paramsLine);
+//            // Try to resolve as a variable first
+//            MetaFieldRegistry.ConfigEntry<?> variableEntry = MetaFieldRegistry.getEntry(paramsLine);
+//            if (variableEntry != null && variableEntry.getValue() != null) {
+//                paramObject = variableEntry.getValue();
+//                System.out.println("Variable Entry: " + paramObject + " " + name);
+//
+//            }
+            return meta.create(paramsLine);
         } else {
             // Action without parameters
             name = line;
@@ -160,26 +192,29 @@ public class UserActionRegistry {
             while ((line = br.readLine()) != null) {
                 rawLines.add(line);
             }
-            
+
             for (int i = 0; i < rawLines.size(); i++) {
                 String currentLine = rawLines.get(i).trim();
                 if (currentLine.isEmpty() || currentLine.startsWith("//") || currentLine.startsWith("#")) continue;
 
-                if (currentLine.contains("={")) {
+                // Support both "name={" and "name = {"
+                if (currentLine.contains("=") && currentLine.substring(currentLine.indexOf("=") + 1).trim().startsWith("{")) {
                     int definitionStartLine = i + 1;
-                    String actionName = currentLine.substring(0, currentLine.indexOf("=")).trim();
-                    
+                    int eqIndex = currentLine.indexOf("=");
+                    String actionName = currentLine.substring(0, eqIndex).trim();
+
                     StringBuilder actionContent = new StringBuilder();
-                    String firstLineContent = currentLine.substring(currentLine.indexOf("={") + 2).trim();
+                    int firstBrace = currentLine.indexOf("{", eqIndex);
+                    String firstLineContent = currentLine.substring(firstBrace + 1).trim();
                     actionContent.append(firstLineContent);
-                    
+
                     int braceLevel = 1;
                     // Count braces in the first line
                     for (char c : firstLineContent.toCharArray()) {
                         if (c == '{') braceLevel++;
                         if (c == '}') braceLevel--;
                     }
-                    
+
                     // If not closed on same line, continue reading
                     if (braceLevel > 0) {
                         while (++i < rawLines.size()) {
@@ -192,17 +227,17 @@ public class UserActionRegistry {
                             if (braceLevel <= 0) break;
                         }
                     }
-                    
+
                     String fullActionStr = actionContent.toString();
                     if (braceLevel > 0) {
                         addError("MetaActionSettings Line " + definitionStartLine + ": Malformed BigAction '" + actionName + "' (missing '}')");
                     }
-                    
+
                     // Remove the last '}'
                     if (fullActionStr.lastIndexOf("}") != -1) {
                         fullActionStr = fullActionStr.substring(0, fullActionStr.lastIndexOf("}")).trim();
                     }
-                    
+
                     List<String> subActionLines = splitByTopLevelCommas(fullActionStr);
                     boolean hasError = false;
                     for (String sub : subActionLines) {
@@ -212,7 +247,7 @@ public class UserActionRegistry {
                             break;
                         }
                     }
-                    
+
                     registry.put(actionName.toUpperCase(), new UserAction(actionName, subActionLines, hasError));
                 }
             }
@@ -221,7 +256,7 @@ public class UserActionRegistry {
         }
     }
 
-    private static void addError(String error) {
+    public static void addError(String error) {
         loadErrors.add(error);
         System.err.println(error);
     }
@@ -281,7 +316,8 @@ public class UserActionRegistry {
             Action a = createAction(sub);
             if (a != null) actions.add(a);
         }
-        return actions;
+        // Apply fusion/merging for nested actions (e.g., consecutive BuilderActions)
+        return actionMerger.apply(actions);
     }
 
     public static boolean evaluateCondition(String condition) {
@@ -297,8 +333,8 @@ public class UserActionRegistry {
 
         // 2. Check variable system
         MetaFieldRegistry.ConfigEntry<?> entry = MetaFieldRegistry.getEntry(condition);
-        if (entry != null && entry.value instanceof Boolean) {
-            return (Boolean) entry.value;
+        if (entry != null && entry.getValue() instanceof Boolean) {
+            return (Boolean) entry.getValue();
         }
         return false;
     }
