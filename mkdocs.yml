@@ -1,0 +1,20 @@
+site_name: Instant Auto
+site_description: Text-based autonomous programming framework for FTC
+
+theme:
+  name: material
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Actions: actions.md
+  - Architecture: architecture.md
+  - Simulator: simulator.md
+
+plugins:
+  - search
+
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - admonition
