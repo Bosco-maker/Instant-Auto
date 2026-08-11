@@ -1,4 +1,5 @@
 site_name: Instant Auto
+site_url: https://Bosco-maker.github.io/Instant-Auto/
 site_description: Text-based autonomous programming framework for FTC
 
 theme:
