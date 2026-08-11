@@ -8,8 +8,7 @@ nav:
   - Home: index.md
   - Getting Started: getting-started.md
   - Actions: actions.md
-  - Architecture: architecture.md
-  - Simulator: simulator.md
+
 
 plugins:
   - search
