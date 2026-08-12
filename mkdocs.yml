@@ -7,8 +7,43 @@ theme:
 
 nav:
   - Home: index.md
-  - Getting Started: getting-started.md
-  - Actions: actions.md
+  - User Guide:
+      - Introduction: user/index.md
+      - Getting Started: user/getting-started.md
+      - Syntax: user/syntax.md
+      - Actions: user/actions.md
+      - Variables: user/variables.md
+      - Conditions: user/conditions.md
+      - Examples: user/examples.md
+      - Troubleshooting: user/troubleshooting.md
+  - Programmer Guide:
+      - Introduction: programmer/index.md
+      - Installation: programmer/installation.md
+      - FTC SDK Integration: programmer/ftc-sdk.md
+      - Roadrunner Integration: programmer/roadrunner.md
+      - Hardware Setup: programmer/hardware.md
+      - Subsystems: programmer/subsystems.md
+      - Autonomous: programmer/autonomous.md
+      - Custom Actions: programmer/custom-actions.md
+      - Examples:
+          - Basic OpMode: programmer/examples/basic-opmode.md
+          - Roadrunner: programmer/examples/roadrunner.md
+  - Developer Guide:
+      - Introduction: developer/index.md
+      - Architecture: developer/architecture.md
+      - Project Structure: developer/project-structure.md
+      - Parser: developer/parser.md
+      - Action System: developer/action-system.md
+      - Registries: developer/registries.md
+      - Configuration: developer/configuration.md
+      - Execution: developer/execution.md
+      - Testing: developer/testing.md
+      - Contributing: developer/contributing.md
+  - Simulator: simulator/index.md
+  - Reference:
+      - Syntax: reference/syntax.md
+      - Actions: reference/actions.md
+      - API: reference/api.md
 
 
 plugins:

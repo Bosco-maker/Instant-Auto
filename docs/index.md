@@ -10,7 +10,7 @@ without recompiling the entire robot application.
 
 ## Documentation
 
-Start with the [Getting Started](getting-started.md) guide.
+Start with the [Getting Started](user/getting-started.md) guide.
 
 ## Simulator
 
