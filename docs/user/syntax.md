@@ -66,14 +66,8 @@ This file defines "Big Actions"—reusable macros composed of several "Mini Acti
     ```
 
 ## 3. Text-File Autos (Routine Files)
-These are the specific sequences for a match (e.g., `ACTIVE_BlueSide.txt`).
+These are the specific sequences for a match (e.g., `ACTIVEBlueSide.txt`).
 
-*   **How to Make One Auto:**
-    *   Navigate to http://192.168.43.1:8080/ (http://192.168.49.1:8080/ if you are using a phone controller), select onBot Java.
-    *   Create a new file at org/firstinspires/ftc/teamcode
-    *   Set File Type to Text File
-    *   Set File Name to ACTIVE_[your-auto-name].txt, example: ACTIVE_BlueFarAuto.txt
-    *   Restart Robot and you auto will appear at Select Autonomous
 *   **Syntax:**
     *   **Config Overrides:** Any `Key = Value` at the top overrides the general settings for this specific auto.
     *   **Required Field:** `Starting = pose2d(...)` must be present.
