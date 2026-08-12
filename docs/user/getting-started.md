@@ -23,7 +23,6 @@ TODO
     ```
     *   Build the code (press the red wrench button)
 
-## Running on the Robot Controller
-    *   Restart the robot.
+    **Running on the Robot Controller**
     *   Restart Robot and you auto will appear at Select Autonomous
     *   Telemetry should output: Hello World for 3 seconds, then output all registered fields (as auto ends)
