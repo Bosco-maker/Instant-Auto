@@ -15,29 +15,19 @@ nav:
       - Variables: user/variables.md
       - Conditions: user/conditions.md
       - Examples: user/examples.md
-      - Troubleshooting: user/troubleshooting.md
   - Programmer Guide:
       - Introduction: programmer/index.md
-      - Installation: programmer/installation.md
-      - FTC SDK Integration: programmer/ftc-sdk.md
       - Roadrunner Integration: programmer/roadrunner.md
-      - Hardware Setup: programmer/hardware.md
+      - Variables, Conditions & Hardware: programmer/variables-conditions.md
       - Subsystems: programmer/subsystems.md
-      - Autonomous: programmer/autonomous.md
       - Custom Actions: programmer/custom-actions.md
-      - Examples:
-          - Basic OpMode: programmer/examples/basic-opmode.md
-          - Roadrunner: programmer/examples/roadrunner.md
+      - Example: programmer/example.md
   - Developer Guide:
       - Introduction: developer/index.md
-      - Architecture: developer/architecture.md
-      - Project Structure: developer/project-structure.md
       - Parser: developer/parser.md
       - Action System: developer/action-system.md
-      - Registries: developer/registries.md
       - Configuration: developer/configuration.md
       - Execution: developer/execution.md
-      - Testing: developer/testing.md
       - Contributing: developer/contributing.md
   - Simulator: simulator/index.md
   - Reference:
@@ -45,11 +35,22 @@ nav:
       - Actions: reference/actions.md
       - API: reference/api.md
 
-
 plugins:
   - search
 
 markdown_extensions:
-  - pymdownx.highlight
-  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - admonition
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true

@@ -1,6 +1,7 @@
 # Variables
 
 Variables in Instant Auto are managed through a centralized system that allows seamless interaction between your Java code and your sequence files.
+Note: Variable names are NOT case-sensitive
 
 ## Types of Variables
 
@@ -98,13 +99,14 @@ If you need **sequential** variable changes that happen mid-auto, you should def
         num=2
     }
 ```
+
 ```text(in ACTIVE_BlueFarAuto.txt)
-Starting=pose2d(-24,0,0)
-title="Blue Far Auto"
-num=1
-printAction
-printAction
-//Telemetry: 1 -> 2
+    Starting=pose2d(-24,0,0)
+    title="Blue Far Auto"
+    num=1
+    printAction
+    printAction
+    //Telemetry: 1 -> 2
 ```
 
 

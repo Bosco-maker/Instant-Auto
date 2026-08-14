@@ -9,4 +9,3 @@ Welcome to the Instant Auto User Guide. This section covers everything you need 
 *   [Variables](variables.md)
 *   [Conditions](conditions.md)
 *   [Examples](examples.md)
-*   [Troubleshooting](troubleshooting.md)
