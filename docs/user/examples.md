@@ -7,13 +7,13 @@ Instant Auto automatically fuses consecutive movement actions. If you put two sp
 #### Example: Double Spline Path
 
 ```java
-// Path 1: Curve from (0,0) to (24,24)
+// Path 1: Curve from (0,0) to (24,24).
 SPLINE.TO(24, 24, 0, 90, 0)
 
-// Path 2: Curve from (24,24) to (48,0), the startTan should be the previous endTan - 180 degree(opposite of the circle)
+// Path 2: Curve from (24,24) to (48,0).
 SPLINE.TO(48, 0, -90, 180, -90)
 ```
-
+**Pro Tip:** the startTan should be the previous endTan - 180 degree(opposite of the circle), as demonstrated above
 **Desired Outcome:** The robot will follow a smooth "S-curve" then a "U-turn" in one fluid motion. It will not pause at the (24, 24) mark because the actions are merged into a single trajectory before the robot starts moving.
 
 ### 2. Concurrency: `PARALLEL` vs. `RACE`

@@ -10,17 +10,23 @@ Sensors are integrated by registering their live values as `Suppliers` in the `M
 DistanceSensor dist = opMode.hardwareMap.get(DistanceSensor.class, "sensor");
 
 // Register the raw reading as a variable
-MetaFieldRegistry.registerField("distCM", Double.class, () -> dist.getDistance(DistanceUnit.CM));
+MetaFieldRegistry.registerField("distance", Double.class, () -> dist.getDistance(DistanceUnit.CM));
 
 // Register a logic gate as a condition
-UserActionRegistry.registerCondition("isBlocked", () -> dist.getDistance(DistanceUnit.CM) < 10.0);
+UserActionRegistry.registerCondition("withinDistance", () -> dist.getDistance(DistanceUnit.CM) < 10.0);
 ```
 
 **Text File Usage**:
-```kotlin
-if (isBlocked) {
-    PRINT("Path blocked at " + distCM)
-}
+```text
+RACE(
+    if(withinDistance) {
+        print("blocked")
+        PRINT(distance)
+    } else {
+        print(yah I am not blocked)
+    },
+    wait(2)
+)
 ```
 
 ### Expected Outcome

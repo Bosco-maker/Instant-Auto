@@ -14,6 +14,9 @@ Moves the robot to the specified coordinates and heading using a linear path (st
   - `heading`: Target heading in degrees.
 - **Example:** `STRAFE.TO(30, 0, 0)`
 - **Alternative:** Can also take a `Pose2d` variable name. `STRAFE.TO(scorePose)`
+- **Warning:** May trigger Exception Displacement 0.0 out of bounds (0.0, 0,0) when the robot is being told to go to the same position before the execution of an action:
+- `starting = pose2d(0,0,0) or STRAFE.TO(30,0,0)`
+- `STRAFE.TO(starting) or STRAFE.TO(30,0,0) `
 
 ### `SPLINE.TO(...)`
 Moves the robot along a spline path to the target.
@@ -21,6 +24,7 @@ Moves the robot along a spline path to the target.
 - **Usage 1 (Literal):** `SPLINE.TO(x, y, heading, startTan, endTan)`
 - **Usage 2 (Variable):** `SPLINE.TO(poseName, startTan, endTan)`
 - **Example:** `SPLINE.TO(30, 30, 90, 0, 90)`
+- **Warning:** May trigger Exception Displacement 0.0 out of bounds (0.0, 0,0) when the robot is being told to go to the same position before the execution of an action:
 
 ## 2. Control Flow Actions
 
@@ -49,11 +53,21 @@ Displays a message in the telemetry or logs.
 - **Parameters:**
   - `message`: A literal string in quotes (e.g., `"Scoring"`) or a registered variable name (e.g., `isBlue`).
 - **Example:** `PRINT("Sequence Started")`
-- **Warning:** This action never ends by itself, so it has to be used like 
+- **Warning:** 
+- This action never ends by itself, so it has to be used like 
 - `RACE(
   PRINT("Sequence Started"),
   WAIT(3)
   )`
+- It also cannot be used with other print action, like:
+- `if(withinDistance) {
+    RACE(print("is blocked")
+        print(distance),
+        wait(5)
+        )
+    }//outcome: it will print "is blocked" and never ends`
+
+- It is a "feature", don't question me ;) may be improved in later version.
 
 ### `HELLO.WORLD`
 A simple diagnostic action that prints "Hello World!" to the console and telemetry.

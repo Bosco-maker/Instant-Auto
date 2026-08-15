@@ -52,8 +52,7 @@ Available in this project:
 *   `is_active`: Always returns `true` (placeholder).
 
 **Example:**
-```kotlin
-//withinDistance is registered in java code, getting data from a distance sensor
+```text
 if (withinDistance) {
     RACE(
         PRINT("Object detected! Stopping."),
@@ -61,14 +60,15 @@ if (withinDistance) {
     )
 } else {
     STRAFE.TO(30, 0, 0)
-}
+}//withinDistance is registered in java code, getting data from a distance sensor
+
 ```
 
 ## Examples & Outcomes
 
 ### 1. Alliance-Based Decision
 **Script:**
-```kotlin
+```text
 if (isBlue) {
     STRAFE.TO(10, 48, 0)
     RACE(
@@ -87,7 +87,7 @@ if (isBlue) {
 
 ### 2. Multi-Case Selection (Else If)
 **Script:**
-```kotlin
+```text
 if (isBlue) {
     RACE(
         PRINT("Blue"),
@@ -103,7 +103,9 @@ if (isBlue) {
         PRINT("Neutral"),
         WAIT(3)
     )
-}
+}//Note: the ending } has to be at the same line as "else if" or else, like above. Not like:
+//}
+//else {  
 ```
 **Outcome:** Evaluates `isBlue` first. If `false`, evaluates `isRed`. If both are false, prints "Neutral".
 
