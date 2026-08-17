@@ -27,7 +27,10 @@ nav:
       - Parser: developer/parser.md
       - Action System: developer/action-system.md
       - Configuration: developer/configuration.md
-      - Execution: developer/execution.md
+      - Execution:
+          - Accessing & Updating Fields: developer/execution-accessing-updating-fields.md
+          - Actions & Roadrunner Adaptation: developer/execution-actions-roadrunner-adaptation.md
+          - Autonomous Execution: developer/execution-rr-auto.md
       - Contributing: developer/contributing.md
   - Simulator: simulator/index.md
   - Reference:

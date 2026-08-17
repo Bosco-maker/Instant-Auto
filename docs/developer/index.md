@@ -6,7 +6,9 @@ The Developer Guide covers the internal architecture of Instant Auto and how to 
 *   [Action & Config Parser](parser.md)
 *   [Action System & UserActionRegistry](action-system.md)
 *   [Configuration & MetaFieldRegistry](configuration.md)
-*   [Execution](execution.md)
+*   [Execution (1): Accessing & Updating Fields](execution-accessing-updating-fields.md)
+*   [Execution (2): Roadrunner Adaptation & Custom Actions](execution-actions-roadrunner-adaptation.md)
+*   [Execution (3): Autonomous Execution (Actions.runBlocking)](execution-rr-auto.md)
 *   [Contributing](contributing.md)
 
 # Instant Auto Framework
