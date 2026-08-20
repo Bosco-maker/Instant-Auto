@@ -14,4 +14,4 @@ Start with the [Getting Started](user/getting-started.md) guide.
 
 ## Simulator
 
-The web simulator is currently under development.
+The web simulator is [Here](simulator/index.html).

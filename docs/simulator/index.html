@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InstantAuto Simulator</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f5f5f5; height: 100vh; display: flex; flex-direction: column; }
+
+        /* Toolbar */
+        .toolbar {
+            background: #2d2d2d;
+            color: #fff;
+            padding: 10px 16px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #444;
+        }
+        .toolbar button {
+            background: #3d3d3d;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.15s;
+        }
+        .toolbar button:hover:not(:disabled) { background: #4d4d4d; }
+        .toolbar button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .toolbar button.primary { background: #007acc; border-color: #007acc; }
+        .toolbar button.primary:hover:not(:disabled) { background: #005a9e; }
+        .toolbar input[type="range"] { width: 120px; }
+        .toolbar .status { flex: 1; min-width: 200px; font-size: 13px; color: #ccc; }
+        .toolbar .status.running { color: #4ec9b0; }
+        .toolbar .status.error { color: #f44747; }
+
+        /* Main Layout */
+        .main { display: flex; flex: 1; overflow: hidden; }
+
+        /* Left: Field Canvas */
+        .field-panel { flex: 1; min-width: 0; background: #fff; position: relative; }
+        #fieldCanvas { display: block; width: 100%; height: 100%; background: #e8e8e8; }
+
+        /* Right: Config Panel */
+        .config-panel {
+            width: 420px;
+            min-width: 380px;
+            max-width: 500px;
+            background: #fff;
+            border-left: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .config-section { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+        .config-section label {
+            background: #f0f0f0;
+            border-bottom: 1px solid #ddd;
+            padding: 8px 12px;
+            font-weight: 600;
+            font-size: 12px;
+            color: #333;
+        }
+        .config-section textarea {
+            flex: 1;
+            border: none;
+            resize: none;
+            padding: 10px 12px;
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #1e1e1e;
+            background: #fff;
+            outline: none;
+        }
+        .config-section textarea:focus { box-shadow: inset 0 0 0 2px #007acc; }
+
+        /* Bottom: Telemetry */
+        .telemetry-panel {
+            height: 200px;
+            min-height: 150px;
+            max-height: 350px;
+            background: #1e1e1e;
+            border-top: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            resize: vertical;
+            overflow: hidden;
+        }
+        .telemetry-header {
+            background: #252526;
+            border-bottom: 1px solid #333;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #ccc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .telemetry-header button {
+            background: transparent;
+            border: 1px solid #444;
+            color: #ccc;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        .telemetry-header button:hover { background: #333; }
+        #telemetry {
+            flex: 1;
+            overflow: auto;
+            padding: 8px 12px;
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 11px;
+            line-height: 1.5;
+            color: #d4d4d4;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .telemetry-line { margin: 2px 0; }
+        .telemetry-line.error { color: #f44747; }
+        .telemetry-line.warn { color: #cca700; }
+        .telemetry-line.info { color: #4ec9b0; }
+        .telemetry-line.action { color: #dcdcaa; }
+        .telemetry-line.pose { color: #9cdcfe; }
+
+        /* Guide Tab - Slide out panel */
+        .guide-tab {
+            position: fixed;
+            top: 60px;
+            right: 0;
+            z-index: 1000;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        .guide-tab-toggle {
+            background: #007acc;
+            color: #fff;
+            border: none;
+            border-radius: 4px 0 0 4px;
+            padding: 12px 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            box-shadow: -2px 0 8px rgba(0,0,0,0.2);
+            transition: background 0.2s;
+        }
+        .guide-tab-toggle:hover { background: #005a9e; }
+        .guide-tab-panel {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 380px;
+            max-height: calc(100vh - 80px);
+            background: #fff;
+            border: 1px solid #ddd;
+            border-right: none;
+            border-radius: 8px 0 0 8px;
+            box-shadow: -4px 0 16px rgba(0,0,0,0.15);
+            overflow: hidden;
+            display: none;
+            flex-direction: column;
+        }
+        .guide-tab-panel.open { display: flex; }
+        .guide-tab-header {
+            background: #f0f0f0;
+            border-bottom: 1px solid #ddd;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .guide-tab-header h3 { margin: 0; font-size: 14px; color: #333; }
+        .guide-tab-close {
+            background: transparent;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #666;
+            padding: 4px 8px;
+            line-height: 1;
+        }
+        .guide-tab-close:hover { color: #333; }
+        .guide-tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #333;
+        }
+        .guide-tab-content h4 { margin: 16px 0 8px; font-size: 13px; color: #007acc; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+        .guide-tab-content h4:first-child { margin-top: 0; }
+        .guide-tab-content code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 11px;
+        }
+        .guide-tab-content pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 12px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 8px 0;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+        .guide-tab-content ul { margin: 8px 0 8px 20px; }
+        .guide-tab-content li { margin: 4px 0; }
+        .guide-tab-content .type-badge {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin: 2px 4px 2px 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 1000px) {
+            .main { flex-direction: column; }
+            .config-panel { width: 100%; min-width: 0; max-width: none; border-left: none; border-top: 1px solid #ddd; max-height: 400px; }
+            .field-panel { min-height: 400px; }
+            .guide-tab-panel { width: 100vw; max-width: 380px; right: -100vw; border-radius: 0; }
+            .guide-tab-panel.open { right: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <button id="runBtn" class="primary" onclick="runSimulation()">▶ Run</button>
+        <button id="resetBtn" onclick="resetSimulation()">↺ Reset</button>
+        <label style="font-size:12px;color:#aaa;">Speed:</label>
+        <input type="range" id="speedRange" min="0.1" max="5" step="0.1" value="1" oninput="updateSpeed(this.value)">
+        <span id="speedLabel" style="width:35px;text-align:right;color:#888;">1.0x</span>
+        <div class="status" id="status">Ready — Edit config or press Run</div>
+    </div>
+
+    <div class="main">
+        <div class="field-panel">
+            <canvas id="fieldCanvas"></canvas>
+            <div id="legend" style="position:absolute;bottom:10px;right:10px;background:rgba(255,255,255,0.9);padding:8px 12px;border-radius:4px;font-size:11px;font-family:monospace;pointer-events:none;display:none;"></div>
+        </div>
+
+        <div class="config-panel">
+            <div class="config-section">
+                <label>ACTIVE Auto</label>
+                <textarea id="activeAuto" spellcheck="false" placeholder="Enter your autonomous routine here..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="telemetry-panel">
+        <div class="telemetry-header">
+            <span>Telemetry</span>
+            <button onclick="clearTelemetry()">Clear</button>
+        </div>
+        <div id="telemetry"></div>
+    </div>
+
+    <!-- Guide Tab -->
+    <div class="guide-tab">
+        <button class="guide-tab-toggle" id="guideToggle" onclick="toggleGuide()">GUIDE</button>
+        <div class="guide-tab-panel" id="guidePanel">
+            <div class="guide-tab-header">
+                <h3>InstantAuto Simulator Guide</h3>
+                <button class="guide-tab-close" onclick="toggleGuide()">×</button>
+            </div>
+            <div class="guide-tab-content">
+                <h4>Actions</h4>
+                <p><strong>STRAFE.TO(x, y, heading)</strong> - Move robot in straight line to target pose</p>
+                <pre>STRAFE.TO(24, 24, 90)</pre>
+                <p>Can also reference a pose variable:</p>
+                <pre>scorePose = pose2d(48, 48, 0)
+STRAFE.TO(scorePose)</pre>
+
+                <p><strong>SPLINE.TO(x, y, heading, startH, endH)</strong> - Move along smooth curved path</p>
+                <pre>SPLINE.TO(48, 48, 90, 0, 90)</pre>
+                <p>Can also reference a pose variable:</p>
+                <pre>SPLINE.TO(scorePose, 0, 90)</pre>
+                <ul>
+                    <li><code>startH</code> - Path tangent angle at start (degrees)</li>
+                    <li><code>endH</code> - Path tangent angle at end (degrees)</li>
+                </ul>
+
+                <h4>Variables</h4>
+                <p>Define variables anywhere in the script. Types are inferred automatically:</p>
+                <table style="width:100%;font-size:11px;border-collapse:collapse;margin:8px 0;">
+                    <tr style="background:#f0f0f0;"><th style="padding:4px;text-align:left;">Type</th><th style="padding:4px;text-align:left;">Syntax</th><th style="padding:4px;text-align:left;">Example</th></tr>
+                    <tr><td style="padding:4px;"><span class="type-badge">double</span></td><td style="padding:4px;"><code>3.14</code></td><td style="padding:4px;"><code>wheelDiameter = 3.14</code></td></tr>
+                    <tr><td style="padding:4px;"><span class="type-badge">int</span></td><td style="padding:4px;"><code>42</code></td><td style="padding:4px;"><code>loopCount = 42</code></td></tr>
+                    <tr><td style="padding:4px;"><span class="type-badge">string</span></td><td style="padding:4px;"><code>"text"</code> or <code>'text'</code></td><td style="padding:4px;"><code>robotName = "Champion"</code></td></tr>
+                    <tr><td style="padding:4px;"><span class="type-badge">boolean</span></td><td style="padding:4px;"><code>true</code> / <code>false</code></td><td style="padding:4px;"><code>isBlue = true</code></td></tr>
+                    <tr><td style="padding:4px;"><span class="type-badge">Pose2d</span></td><td style="padding:4px;"><code>pose2d(x, y, h)</code></td><td style="padding:4px;"><code>startPose = pose2d(-60, -60, 0)</code></td></tr>
+                </table>
+                <p><strong>Required:</strong> <code>Starting</code> variable must be defined as a <code>pose2d</code>.</p>
+                <pre>Starting = pose2d(-60, -60, 0)</pre>
+
+                <h4>Conditionals</h4>
+                <p><strong>if / else if / else</strong> blocks with boolean conditions:</p>
+                <pre>isBlue = true
+if (isBlue) {
+    STRAFE.TO(24, 0, 0)
+} else {
+    STRAFE.TO(-24, 0, 0)
+}</pre>
+                <p>Conditions are case-insensitive and can be literals or variables.</p>
+
+                <h4>Field Coordinates</h4>
+                <ul>
+                    <li>Field: 144" × 144" (12ft × 12ft)</li>
+                    <li>Origin (0,0) at field center</li>
+                    <li>+X = Right, +Y = Up</li>
+                    <li>Heading: 0° = +X, 90° = +Y, 180° = -X, 270° = -Y</li>
+                </ul>
+
+                <h4>Keyboard Shortcuts</h4>
+                <ul>
+                    <li><kbd>Space</kbd> / <kbd>Enter</kbd> — Run</li>
+                    <li><kbd>R</kbd> — Reset</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>

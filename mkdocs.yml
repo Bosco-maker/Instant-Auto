@@ -32,7 +32,7 @@ nav:
           - Actions & Roadrunner Adaptation: developer/execution-actions-roadrunner-adaptation.md
           - Autonomous Execution: developer/execution-rr-auto.md
       - Contributing: developer/contributing.md
-  - Simulator: simulator/index.md
+  - Simulator: simulator/index.html
   - Reference:
       - Syntax: reference/syntax.md
       - Actions: reference/actions.md
