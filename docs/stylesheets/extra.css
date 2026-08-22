@@ -1,0 +1,31 @@
+/* Make logo larger in the header - Material theme selectors */
+.md-header__button[aria-label="Instant Auto"] img,
+.md-header__button.logo img,
+.md-header__brand img,
+header .md-header__button img {
+    height: 48px !important;
+    width: auto !important;
+}
+
+/* Make logo larger in the sidebar */
+.md-nav__brand img,
+.md-nav__logo img,
+.sidebar .md-nav__brand img {
+    height: 48px !important;
+    width: auto !important;
+}
+
+/* Adjust header height to accommodate larger logo */
+.md-header {
+    min-height: 2rem !important;
+}
+
+.md-header__inner {
+    padding: 0.75rem 0 !important;
+}
+
+/* Ensure logo container doesn't constrain size */
+.md-header__button[aria-label="Instant Auto"],
+.md-header__button.logo {
+    padding: 0 !important;
+}
