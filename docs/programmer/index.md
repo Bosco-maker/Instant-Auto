@@ -8,4 +8,5 @@ The Programmer Guide is intended for developers who want to integrate Instant Au
 *   [Subsystems](subsystems.md)
 *   [Custom Actions](custom-actions.md)
 *   [Example](example.md)
+*   [MeepMeep Testbed](meep-meep-testbed.md)
 * TODO: add meep meep docs

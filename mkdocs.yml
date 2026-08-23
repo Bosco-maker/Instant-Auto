@@ -28,6 +28,7 @@ nav:
       - Subsystems: programmer/subsystems.md
       - Custom Actions: programmer/custom-actions.md
       - Example: programmer/example.md
+      - MeepMeep Testbed: programmer/meep-meep-testbed.md
   - Developer Guide:
       - Introduction: developer/index.md
       - Parser: developer/parser.md
