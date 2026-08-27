@@ -45,7 +45,7 @@ public class Pose2d implements MetaField<Pose2d> {
     }
 
     public com.acmerobotics.roadrunner.Pose2d getRRPose2d() {
-        return new com.acmerobotics.roadrunner.Pose2d(x, y, heading);
+        return new com.acmerobotics.roadrunner.Pose2d(x, y, Math.toRadians(heading));
     }
 }
 ```

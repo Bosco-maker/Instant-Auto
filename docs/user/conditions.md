@@ -1,141 +1,258 @@
-# Conditions in Instant Auto
+# Conditions
 
-Instant Auto supports conditional logic in autonomous scripts using `if`, `else if`, and `else` blocks. This allows your robot to make decisions at runtime based on the state of the match, sensor data, or configuration variables.
+InstantAuto supports conditional logic in autonomous scripts using `if`, `else if`, and `else` blocks. This allows your robot to make decisions at runtime based on sensor data, configuration variables, or match state.
+
+---
 
 ## Syntax
 
-Conditions follow a standard C-style syntax:
-
-```kotlin
+```ini
 if (condition) {
-    Action1
-    Action2
+    action1,
+    action2
 } else if (anotherCondition) {
-    Action3
+    action3
 } else {
-    Action4
+    action4
 }
 ```
 
-*   Actions inside the blocks are separated by new lines or commas.
-*   Braces `{}` are required for blocks, even if there is only one action.
-*   Nesting is supported (you can put an `if` inside another `if`).
+### Rules
+- **Braces `{ }` required** — even for single actions
+- `else if` and `else` must be on the **same line** as the closing `}`
+- **Nesting supported** — `if` inside `if`
+- Actions separated by commas or newlines
+
+```ini
+# Correct
+if (isBlue) {
+    STRAFE.TO(bluePose)
+} else {
+    STRAFE.TO(redPose)
+}
+
+# Wrong - else on new line
+if (isBlue) {
+    STRAFE.TO(bluePose)
+}
+else {        // ERROR
+    STRAFE.TO(redPose)
+}
+```
+
+---
 
 ## Condition Evaluation
 
-The condition inside the parentheses is evaluated at runtime. It can be one of the following:
+Conditions are evaluated **once at runtime** when the `if` block is reached (lazy evaluation). The result determines which branch executes.
+
+### Priority Order (Highest to Lowest)
+
+| Priority | Source | Example | Overwritable? |
+|----------|--------|---------|---------------|
+| 1 | Literal `true` / `false` | `if (true)` | N/A |
+| 2 | **Registered BooleanSupplier** | `if (withinDistance)` | **No** |
+| 3 | Boolean variable (`MetaFieldRegistry`) | `if (isBlue)` | Yes (but static init) |
+| 4 | Undefined / missing | `if (unknown)` | Defaults to `false` |
+
+---
+
+## Condition Sources
 
 ### 1. Literals
-You can use `true` or `false` directly.
-*   **Example:** `if (true) { RACE(PRINT("Always runs"), WAIT(3)) }`
-
-### 2. Configuration Variables
-Any boolean variable defined in your robot settings (`RobotSettings.txt`) or at the top of your autonomous file.
-*   **Example:**
-    ```kotlin
-    // At top of .txt file
-    isBlue = true
-
-    // Later in the script
-    if (isBlue) {
-        RACE(
-            PRINT("Running Blue path"),
-            WAIT(3)
-        )
-    }
-    ```
-
-### 3. Registered Sensor/State Conditions
-Pre-defined conditions registered in the robot's Java code (usually in `ConfigManager.java`). These are dynamic and updated every time the `if` statement is reached.
-
-Available in this project:
-*   `is_active`: Always returns `true` (placeholder).
-
-**Example:**
-```text
-if (withinDistance) {
-    RACE(
-        PRINT("Object detected! Stopping."),
-        WAIT(3)
-    )
-} else {
-    STRAFE.TO(30, 0, 0)
-}//withinDistance is registered in java code, getting data from a distance sensor
-
+```ini
+if (true) { ... }      # Always executes
+if (false) { ... }     # Never executes
 ```
 
-## Examples & Outcomes
+### 2. Registered Boolean Suppliers (Highest Priority)
+Registered in Java via `UserActionRegistry.registerCondition()`:
 
-### 1. Alliance-Based Decision
-**Script:**
-```text
-if (isBlue) {
-    STRAFE.TO(10, 48, 0)
-    RACE(
-        PRINT("Running Blue Alliance Path"),
-        WAIT(3)
-    )
-} else {
-    STRAFE.TO(10, -48, 0)
-    RACE(
-        PRINT("Running Red Alliance Path"),
-        WAIT(3)
-    )
+```java
+// In ConfigManager.init()
+UserActionRegistry.registerCondition("withinDistance", () -> 
+    hardwareMap.get(DistanceSensor.class, "distance").getDistance(DistanceUnit.CM) < 10.0);
+
+UserActionRegistry.registerCondition("isActive", () -> true);
+```
+
+**In text:**
+```ini
+if (withinDistance) {
+    INTAKE.CLOSE
 }
 ```
-**Outcome:** If `isBlue` is set to `true`, the robot strafes to positive Y (Blue side). If `false` (or not defined), it strafes to negative Y (Red side).
 
-### 2. Multi-Case Selection (Else If)
-**Script:**
-```text
-if (isBlue) {
-    RACE(
-        PRINT("Blue"),
-        WAIT(3)
-    )
-} else if (isRed) {
-    RACE(
-        PRINT("Red"),
-        WAIT(3)
-    )
-} else {
-    RACE(
-        PRINT("Neutral"),
-        WAIT(3)
-    )
-}//Note: the ending } has to be at the same line as "else if" or else, like above. Not like:
-//}
-//else {  
+> **Cannot be overwritten** by text-file assignments. The supplier is called fresh every time the `if` is evaluated.
+
+### 3. Boolean Variables
+Registered in Java via `MetaFieldRegistry.registerField()` or defined in text files:
+
+```java
+// Java
+MetaFieldRegistry.registerField("isBlue", Boolean.class, true);
+MetaFieldRegistry.registerField("hasPreload", Boolean.class, false);
 ```
-**Outcome:** Evaluates `isBlue` first. If `false`, evaluates `isRed`. If both are false, prints "Neutral".
 
-### 3. Nested Conditions
-**Script:**
-```kotlin
+```ini
+# Text file (top-level — static init)
+isBlue = true
+hasPreload = false
+
+# In actions
 if (isBlue) {
-    if (doPreload) {
+    STRAFE.TO(blueScorePose)
+}
+
+if (hasPreload) {
+    SCORE.PRELOAD
+}
+```
+
+> **Top-level assignments happen at init time** (before actions start). Even inside `if` blocks in the auto file, the assignment executes during parsing.
+
+### 4. Undefined Conditions
+If a condition name doesn't match a supplier or variable, it evaluates to `false`.
+
+```ini
+if (thisDoesNotExist) {   # false
+    ...
+} else {
+    PRINT("Default path")  # This runs
+}
+```
+
+---
+
+## Examples
+
+### Alliance-Based Path Selection
+```ini
+# ACTIVEAuto.txt
+Starting = pose2d(-24, 0, 0)
+isBlue = true
+
+if (isBlue) {
+    SPLINE.TO(blueScorePose, 0, 45)
+} else {
+    SPLINE.TO(redScorePose, 0, -45)
+}
+```
+
+### Multi-Case Selection (Else If)
+```ini
+if (isBlue) {
+    PRINT("Blue alliance")
+} else if (isRed) {
+    PRINT("Red alliance")
+} else {
+    PRINT("Unknown alliance")
+}
+```
+
+### Nested Conditions
+```ini
+if (isBlue) {
+    if (hasPreload) {
         SCORE.PRELOAD
     }
-    STRAFE.TO(30, 0, 0)
+    SPLINE.TO(blueScorePose, 0, 45)
+} else {
+    if (hasPreload) {
+        SCORE.PRELOAD
+    }
+    SPLINE.TO(redScorePose, 0, -45)
 }
 ```
-**Outcome:** If `isBlue` is `true`, it then checks `doPreload`. If `doPreload` is also `true`, it runs `SCORE.PRELOAD` and then `STRAFE.TO`. If `doPreload` is `false`, it only runs `STRAFE.TO`.
 
-## Advanced: Action Fusing
+### Sensor-Based Decision
+```java
+// Java registration
+UserActionRegistry.registerCondition("sampleDetected", () -> 
+    visionPortal.getFrameCount() > 0 && detector.getDetections().size() > 0);
+```
 
-Instant Auto automatically attempts to "fuse" consecutive movement actions (like `STRAFE.TO` and `SPLINE.TO`) into a single continuous Roadrunner trajectory. This applies even inside `if/else` branches.
+```ini
+# Text file
+if (sampleDetected) {
+    VISION.ALIGN
+    INTAKE.ON(1.0)
+} else {
+    SEARCH.PATTERN
+}
+```
 
-**For example:**
-```kotlin
+---
+
+## Advanced: Action Fusing Inside Branches
+
+InstantAuto automatically **fuses consecutive movement actions** (like `STRAFE.TO` and `SPLINE.TO`) into a single continuous RoadRunner trajectory. This applies **even inside `if/else` branches**.
+
+```ini
 if (isBlue) {
     STRAFE.TO(10, 10, 0)
     STRAFE.TO(20, 20, 0)
+    SPLINE.TO(scorePose, 45, -45)
 }
 ```
-**Outcome:** If `isBlue` is `true`, both `STRAFE.TO` actions will be combined into a single smooth motion rather than stopping between them.
+
+**Result:** If `isBlue` is true, all three movements become **one smooth trajectory** — no stops between segments.
+
+> [!NOTE]
+> This fusion requires `UserActionRegistry.setActionMerger()` to be configured in `ActionManager.init()` (handled automatically in TeamCode).
+
+---
 
 ## Troubleshooting
 
-*   **Malformed Blocks:** Ensure every opening brace `{` has a matching closing brace `}`.
-*   **Unknown Conditions:** If you use a variable name that hasn't been defined, it will evaluate to `false` by default.
-*   **Semicolons:** Instant Auto uses commas or newlines to separate actions; semicolons are not required.
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| Condition always `false` | Typo in condition name | Check spelling; use registered supplier name exactly |
+| `else` not recognized | `else` on new line | Put `} else {` on same line |
+| Branch not executing | Variable assigned in `if` block at top level | Top-level assignments are static — move to Big Action for runtime |
+| Supplier not called | Overwrote with assignment | Don't assign to condition supplier names |
+| Nested if fails | Missing braces | Every `if`/`else` needs `{ }` |
+
+---
+
+## MeepMeep Simulator Limitation
+
+> [!WARNING]
+> **If/else blocks do NOT work correctly in MeepMeepTestbed.**
+> 
+> The simulator parses them but lacks the `actionMerger` callback needed to fuse trajectories inside branches. Test conditional logic on the physical robot, or use separate test files per branch:
+> 
+> ```ini
+> # testAuto_blue.txt
+> Starting = pose2d(-24, 0, 0)
+> SPLINE.TO(blueScorePose, 0, 45)
+> 
+> # testAuto_red.txt
+> Starting = pose2d(-24, 0, 0)
+> SPLINE.TO(redScorePose, 0, -45)
+> ```
+
+---
+
+## Quick Reference
+
+```ini
+# Literals
+if (true) { ... }
+if (false) { ... }
+
+# Boolean supplier (unchangeable, live)
+if (withinDistance) { ... }
+
+# Boolean variable (static init, overridable)
+if (isBlue) { ... }
+
+# Syntax
+if (cond) { ACTION } else { ACTION }
+if (cond) { ACTION } else if (cond2) { ACTION } else { ACTION }
+
+# Nesting
+if (cond1) {
+    if (cond2) { ACTION }
+}
+```

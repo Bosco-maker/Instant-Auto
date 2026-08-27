@@ -1,16 +1,15 @@
-# MeepMeepTestbed
+# MeepMeep Testbed
 
-## Overview
+The **MeepMeepTestbed** is a simulation module that allows testing InstantAuto autonomous routines using **MeepMeep** (a 2D RoadRunner simulator) without physical robot hardware. It executes the exact same text-file-based autonomous configurations that run on the robot.
 
-The **MeepMeepTestbed** is a simulation module that allows testing InstantAuto autonomous routines using **MeepMeep** (a 2D RoadRunner simulator) without requiring physical robot hardware. It executes the exact same text-file-based autonomous configurations that run on the robot, enabling rapid iteration and debugging.
 
-**Key Benefit**: Write once, test in simulation, deploy to robot with identical text files.
+## Key Benefit
+
+**Write once, test in simulation, deploy to robot with identical text files.**
 
 ---
 
-## Architecture
-
-### Module Structure
+## Module Structure
 
 ```
 MeepMeepTestbed/
@@ -29,7 +28,9 @@ MeepMeepTestbed/
 │       └── SimulationConfigManager.java  # Config registration for sim
 ```
 
-### Execution Flow
+---
+
+## Execution Flow
 
 ```
 MeepMeepTestbed.main()
@@ -62,7 +63,9 @@ MeepMeepTestbed.main()
            meepMeep.start()
 ```
 
-### Two-Phase Parsing (Same as Robot)
+---
+
+## Two-Phase Parsing (Same as Robot)
 
 | Phase | Purpose | Requires |
 |-------|---------|----------|
@@ -71,7 +74,7 @@ MeepMeepTestbed.main()
 
 ---
 
-## Available Actions
+## Available Actions in Simulator
 
 ### MiniActions (Registered in `SimulationActionManager`)
 
@@ -80,8 +83,6 @@ MeepMeepTestbed.main()
 | **STRAFE.TO** | `STRAFE.TO(x, y, heading)`<br>`STRAFE.TO(poseVar)` | Strafe to position with heading. Accepts literal `x,y,heading` (degrees) or variable reference to `SimPose2d`. |
 | **SPLINE.TO** | `SPLINE.TO(x, y, heading, startTan, endTan)`<br>`SPLINE.TO(poseVar, startTan, endTan)` | Spline to pose with tangent control. 5 params: `x, y, heading, startTangent, endTangent` (all degrees). Or variable pose + 2 tangents. |
 | **WAIT** | `WAIT(seconds)` | Sleep action. Single double parameter. |
-| **PARALLEL** | `PARALLEL(ACTION1, ACTION2, ...)` | Runs sub-actions in parallel (RoadRunner `ParallelAction`). Sub-actions parsed by top-level commas. |
-| **PRINT** | `PRINT("literal")`<br>`PRINT(varName)` | Prints to console. Quoted string = literal. Unquoted = variable lookup in `MetaFieldRegistry`. |
 
 ### Composite Actions (Defined in `UserActionSettings.txt`)
 
@@ -96,17 +97,9 @@ MY_COMPOSITE = {
 
 ### Control Flow (Parsed by `UserActionRegistry`)
 
-| Construct | Syntax | Notes |
-|-----------|--------|-------|
-| **Variable Assignment** | `myPose = pose2d(10, 20, 90)` | Updates `MetaFieldRegistry` at runtime |
-| **If/Else** | `if (cond) { A, B } else { C }` | Evaluated **once** on first run. Supports `else if` chains. |
-| **Conditions** | Registered via `registerCondition()` | BooleanSuppliers (unchangeable) > Boolean variables > `false` |
-
-### Registered Conditions (in `SimulationConfigManager`)
-
-```java
-registerCondition("is_active", () -> true);  // Always true for testing
-```
+| Construct | Syntax                               | Notes |
+|-----------|--------------------------------------|-------|
+| **Variable Assignment** | `myPose = pose2d(10, 20, 90)`        | Updates `MetaFieldRegistry` at runtime |
 
 ---
 
@@ -132,8 +125,8 @@ if (withinDistance) {
 ### Root Cause
 
 1. **No `actionMerger` set**: The `UserActionRegistry.setActionMerger()` callback is never configured in `MeepMeepTestbed`. This callback is responsible for:
-    - Fusing consecutive `BuilderAction` trajectories (for smooth motion)
-    - **Recursively merging nested actions inside if/else branches**
+   - Fusing consecutive `BuilderAction` trajectories (for smooth motion)
+   - **Recursively merging nested actions inside if/else branches**
 
 2. **If/else actions are created but not merged**: In the robot code (`ActionManager.init()`), `UserActionRegistry.setActionMerger()` is called with `ActionUtils.mergeNestedActions()`, which uses reflection to find and merge `trueActions`/`targetActions` fields inside the if/else `Action` objects. Without this, trajectories inside branches are never fused.
 
@@ -176,7 +169,10 @@ This is a known limitation. To fix, `SimulationActionUtils` would need:
 
 - Java 11+
 - Gradle (wrapper included in project root)
-- Project built: `./gradlew :instantauto:build`
+- Project built: `./gradlew :instantauto:build`, or 
+--- 
+It came with Roadrunner Quickstart.
+See https://github.com/acmerobotics/MeepMeep for how to set it up as an application that runs in Android Studio.
 
 ### Run MeepMeepTestbed
 
@@ -194,11 +190,11 @@ Or in Android Studio:
 
 Edit files in `MeepMeepTestbed/src/main/java/com/example/meepmeeptestbed/textfiles/`:
 
-| File | Purpose |
-|------|---------|
+| File                       | Purpose |
+|----------------------------|---------|
 | `GeneralRobotSettings.txt` | Global config (currently empty, uses `SimulationConfigManager` defaults) |
-| `UserActionSettings.txt` | Define composite actions (currently empty) |
-| `testAuto.txt` | Main autonomous routine to test |
+| `UserActionSettings.txt`   | Define composite actions (currently empty) |
+| `ACTIVEtestAuto.txt`       | Main autonomous routine to test |
 
 ### Example `testAuto.txt`
 
@@ -234,9 +230,9 @@ Add custom fields here for your autonomous.
 
 `VanillaMeepMeep.java` provides a **pure MeepMeep + RoadRunner** reference implementation without InstantAuto. Use it to:
 
-1. **Verify MeepMeep works** - Rule out simulator issues
-2. **Compare trajectories** - Ensure InstantAuto produces equivalent paths
-3. **Prototype paths** - Quick iteration on spline parameters before committing to text files
+1. **Verify MeepMeep works** — Rule out simulator issues
+2. **Compare trajectories** — Ensure InstantAuto produces equivalent paths
+3. **Prototype paths** — Quick iteration on spline parameters before committing to text files
 
 ### VanillaMeepMeep Example
 
@@ -352,20 +348,6 @@ List<String> loadErrors = UserActionRegistry.getLoadErrors();
 
 ---
 
-## Integration with CI/CD
-
-```yaml
-# Example GitHub Actions step
-- name: Run MeepMeep Simulation
-  run: ./gradlew :MeepMeepTestbed:run --no-daemon
-  # Note: MeepMeep requires display; use xvfb-run on headless CI
-```
-
-For headless CI, consider:
-- `xvfb-run ./gradlew :MeepMeepTestbed:run`
-- Or use `MeepMeepTestbed` as integration test with assertions on final pose
-
----
 
 ## File Reference
 

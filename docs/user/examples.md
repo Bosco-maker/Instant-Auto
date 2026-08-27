@@ -1,75 +1,233 @@
 # Examples
 
-### 1. Chaining Splines (`SPLINE.TO`)
+Real autonomous routines tested on physical robots. All examples use `.txt` files and RoadRunner actions (`STRAFE.TO`, `SPLINE.TO`).
 
-Instant Auto automatically fuses consecutive movement actions. If you put two splines back-to-back, Roadrunner calculates them as one continuous, smooth path without stopping in the middle.
+---
 
-#### Example: Double Spline Path
+## 1. Chaining Splines (`SPLINE.TO`)
 
-```java
-// Path 1: Curve from (0,0) to (24,24).
+InstantAuto automatically fuses consecutive movement actions into a single continuous trajectory.
+
+### Double Spline Path
+
+```ini
+# Path 1: Curve from (0,0) to (24,24)
 SPLINE.TO(24, 24, 0, 90, 0)
 
-// Path 2: Curve from (24,24) to (48,0).
+# Path 2: Curve from (24,24) to (48,0)
 SPLINE.TO(48, 0, -90, 180, -90)
 ```
-**Pro Tip:** the startTan should be the previous endTan - 180 degree(opposite of the circle), as demonstrated above
-**Desired Outcome:** The robot will follow a smooth "S-curve" then a "U-turn" in one fluid motion. It will not pause at the (24, 24) mark because the actions are merged into a single trajectory before the robot starts moving.
 
-### 2. Concurrency: `PARALLEL` vs. `RACE`
+**Pro Tip:** The `startTangent` of the next spline should be the previous `endTangent ± 180°` (opposite direction) for smooth continuity.
 
-#### The `PRINT` Behavior
+**Result:** Robot follows a smooth "S-curve" then "U-turn" in one fluid motion — no pause at (24, 24).
 
-In Instant Auto, the `PRINT` action is designed to be persistent. It returns `true` forever so that the message stays on the telemetry. This significantly changes how you use it with `PARALLEL` and `RACE`.
+---
 
-#### `PARALLEL` with Print (The "Hang")
+## 2. Concurrency: `PARALLEL` vs `RACE`
 
-```java
+### The `PRINT` Behavior
+
+`PRINT` **never completes** (returns `true` forever) to keep messages on telemetry. This changes how you use it with concurrency.
+
+#### `PARALLEL` with Print — The Hang
+```ini
 PARALLEL(
     STRAFE.TO(48, 0, 0),
     PRINT("This will hang the robot")
 )
 ```
+**Result:** Robot drives to X=48 then stops **forever**. `PARALLEL` waits for ALL actions; `PRINT` never finishes.
 
-**Result:** The robot will drive to X=48 and then stop forever. Because `PARALLEL` waits for all actions to finish, and `PRINT` never finishes, the autonomous script will never move to the next line.
-
-#### `RACE` with Print (The Correct Way)
-
-```java
+#### `RACE` with Print — Correct
+```ini
 RACE(
     STRAFE.TO(48, 0, 0),
     PRINT("Driving to X=48...")
 )
 ```
+**Result:** Robot drives while message shows. When `STRAFE.TO` completes, it "wins the race" and the `RACE` exits, ending the `PRINT` too.
 
-**Desired Outcome:** The robot drives to X=48 while the message appears on the screen. As soon as the robot reaches the target, the `STRAFE.TO` finishes. This "wins" the race, causing the `RACE` block to exit and move to the next command, effectively ending the `PRINT` as well.
+---
 
-### 3. Timeouts and Motion Persistence
+## 3. Timeouts and Motion Persistence
 
-Using `RACE(drive, WAIT)` is the standard way to implement a timeout, but you must be careful about the robot's momentum.
+`RACE(drive, WAIT)` implements timeouts, but the drivebase keeps its velocity when cancelled.
 
-#### Example: The Timeout Trap
-
-```java
+### The Timeout Trap
+```ini
 RACE(
     STRAFE.TO(100, 0, 0),
     WAIT(2.0)
 )
-// If the timeout wins, the robot is still moving here!
 PRINT("Timeout reached!")
 ```
+**Problem:** If timeout wins at X=50, robot continues coasting — no command told it to stop.
 
-**Behavior:** If the robot is at X=50 when the 2-second `WAIT` finishes, the `STRAFE.TO` action is cancelled. However, the drivebase will continue moving forward at its current velocity because no new instruction told it to stop.
-
-#### The Correct Way: Timeout with "Brake"
-
-```java
+### Correct: Timeout with Brake
+```ini
 RACE(
     STRAFE.TO(100, 0, 0),
     WAIT(2.0)
 )
-// Immediately give a new instruction to "catch" the drivebase
+# Immediately "catch" the drivebase
 STRAFE.TO(50, 0, 0)
 ```
+**Result:** New trajectory brings robot under control instantly.
 
-**Desired Outcome:** If the 2-second timeout occurs, the robot is immediately given a new target (its current estimated position or a new safe spot). This forces Roadrunner to calculate a new trajectory, effectively bringing the robot under control again.
+---
+
+## 4. Alliance-Based Routine
+
+```ini
+# ACTIVEBlueRedAuto.txt
+Starting = pose2d(-24, 0, 0)
+title = "Blue/Red Auto"
+isBlue = true
+
+if (isBlue) {
+    SPLINE.TO(blueScorePose, 0, 45),
+    INTAKE.ON(1.0),
+    WAIT(0.5),
+    INTAKE.OFF
+} else {
+    SPLINE.TO(redScorePose, 0, -45),
+    INTAKE.ON(1.0),
+    WAIT(0.5),
+    INTAKE.OFF
+}
+
+# Common park
+STRAFE.TO(parkPose)
+```
+
+---
+
+## 5. Sensor-Guided Approach
+
+```java
+// Java: ConfigManager.init()
+UserActionRegistry.registerCondition("sampleNear", () ->
+    hardwareMap.get(DistanceSensor.class, "distance").getDistance(DistanceUnit.CM) < 15.0);
+```
+
+```ini
+# ACTIVEAuto.txt
+Starting = pose2d(-24, 0, 0)
+
+# Drive toward sample
+RACE(
+    SPLINE.TO(approachPose, 0, 90),
+    WAIT(3.0)  # Safety timeout
+)
+STRAFE.TO(50, 0, 0)  # Brake
+
+# Conditional intake
+if (sampleNear) {
+    INTAKE.ON(1.0),
+    WAIT(0.8),
+    INTAKE.OFF
+} else {
+    PRINT("No sample detected"),
+    SEARCH.PATTERN
+}
+```
+
+---
+
+## 6. Parallel Subsystem + Drive
+
+Drive and actuate simultaneously:
+
+```ini
+PARALLEL(
+    SPLINE.TO(scorePose, 0, 45),
+    ARM.SET(scoreHeight),
+    INTAKE.ON(1.0)
+)
+WAIT(0.3)  # Ensure all complete
+ARM.SET(stowHeight)
+```
+
+---
+
+## 7. Reusable Big Actions
+
+```ini
+# UserActionSettings.txt
+scoreSample = {
+    SPLINE.TO(scorePose, 0, 45),
+    INTAKE.ON(intakePower),
+    WAIT(0.5),
+    INTAKE.OFF
+}
+
+park = {
+    STRAFE.TO(parkPose),
+    WAIT(0.2)
+}
+
+# ACTIVEAuto.txt
+Starting = pose2d(-24, 0, 0)
+scoreSample
+park
+```
+
+---
+
+## 8. Dynamic Variable in Big Action
+
+```ini
+# UserActionSettings.txt
+adaptiveScore = {
+    PRINT("Approaching: " + currentTarget),
+    currentTarget = pose2d(adjustedX, adjustedY, 90),  # Runtime assignment!
+    SPLINE.TO(currentTarget, 0, 45),
+    INTAKE.ON(1.0)
+}
+```
+
+---
+
+## 9. Multi-Stage Auto with Conditions
+
+```ini
+# ACTIVEComplexAuto.txt
+Starting = pose2d(-24, 0, 0)
+title = "Complex Auto"
+isBlue = true
+hasPreload = true
+
+# Stage 1: Preload
+if (hasPreload) {
+    SCORE.PRELOAD
+}
+
+# Stage 2: Alliance-specific intake
+if (isBlue) {
+    SPLINE.TO(blueIntakePose, 0, 90)
+} else {
+    SPLINE.TO(redIntakePose, 0, -90)
+}
+
+# Stage 3: Score cycle (repeated via Big Action)
+scoreCycle
+scoreCycle
+
+# Stage 4: Park
+parkAction
+```
+
+---
+
+## Key Patterns Summary
+
+| Pattern | Use Case | Template |
+|---------|----------|----------|
+| **Smooth chaining** | Continuous paths | `SPLINE.TO(...)` → `SPLINE.TO(...)` |
+| **Timeout + brake** | Safety stop | `RACE(drive, WAIT)` → `STRAFE.TO(current)` |
+| **Print with duration** | Telemetry | `RACE(PRINT(...), WAIT(sec))` |
+| **Parallel subsystem** | Drive + arm/intake | `PARALLEL(drive, ARM.SET, INTAKE.ON)` |
+| **Alliance branch** | Blue/Red paths | `if (isBlue) { ... } else { ... }` |
+| **Sensor branch** | Reactive behavior | `if (sensorCondition) { ... } else { ... }` |
+| **Reusable macro** | DRY principle | `BigAction = { ... }` in UserActionSettings |

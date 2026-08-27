@@ -1,11 +1,11 @@
-# Parser (Auto Parser & Config Parser)
+# Parser (AutoParser & ConfigParser)
 
 ## Overview
 
 The **Parser** subsystem is the entry point of the InstantAuto ecosystem. It transforms text files into executable autonomous routines by handling two distinct parsing phases:
 
-1. **Config Parser** (`ConfigParser`) - Parses key=value configuration lines into typed variables
-2. **Auto Parser** (`AutoParser`) - Orchestrates the full pipeline: finds active auto files, parses configs, and converts action strings into `Action` objects
+1. **ConfigParser** (`ConfigParser`) - Parses key=value configuration lines into typed variables
+2. **AutoParser** (`AutoParser`) - Orchestrates the full pipeline: finds active auto files, parses configs, and converts action strings into `Action` objects
 
 ---
 

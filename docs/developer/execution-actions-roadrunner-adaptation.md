@@ -1,106 +1,91 @@
-# Execution (Page 2): ActionManager, ActionUtils — Custom Actions & RoadRunner Adaptation
+# Execution (Page 2): Actions & RoadRunner Adaptation
 
 ## Overview
 
-This page covers the **TeamCode-side execution layer**: `ActionManager` (registers primitives) and `ActionUtils` (utilities for building, merging, and adapting actions). This is where InstantAuto meets RoadRunner.
+This page details how **InstantAuto Actions** integrate with **RoadRunner 1.0** — from primitive action factories to trajectory fusion, caching, and the adapters that bridge both ecosystems.
 
 ---
 
-## ActionManager (`org.firstinspires.ftc.teamcode.action.ActionManager`)
+## Action Hierarchy
 
-### Purpose
-Initializes and registers all **MiniActions** (primitives) that text-file actions can call. Bridges Java/RoadRunner capabilities to the InstantAuto action system.
+```
+Text File                          Java Code
+──────────────────────────────────────────────────────────
+STRAFE.TO(30,0,0)      ──►  MiniAction("STRAFE.TO", factory)
+                              │
+                              ▼
+                    Factory returns Action
+                              │
+              ┌───────────────┼───────────────┐
+              ▼               ▼               ▼
+       BuilderAction    WrappedRRAction    SimpleAction
+       (fusable)        (wraps RR Action)  (instant)
+```
 
-### Initialization
+---
+
+## Action Types
+
+### 1. BuilderAction (Trajectory Actions)
+
+**Purpose**: Drive actions that build RoadRunner trajectories and support **fusion** (chaining).
 
 ```java
-public class ActionManager {
-    MecanumDrive mecanumDrive;
-    Telemetry telemetry;
+public interface BuilderAction extends Action {
+    /** Apply this segment to a trajectory builder */
+    TrajectoryActionBuilder apply(TrajectoryActionBuilder builder);
+}
+```
 
-    public void init(MecanumDrive drivebase, Telemetry telemetry) {
-        this.mecanumDrive = drivebase;
-        this.telemetry = telemetry;
+**Dual nature**: 
+- **Standalone**: `run()` → builds & caches trajectory on first call
+- **Fused**: `apply(builder)` → chains segment into larger trajectory
 
-        // Register primitives
-        UserActionRegistry.register(new MiniAction("STRAFE.TO", this::strafeToFactory));
-        UserActionRegistry.register(new MiniAction("SPLINE.TO", this::splineToFactory));
-        UserActionRegistry.register(new MiniAction("PRINT", obj -> ActionUtils.wrap(new PrintAction(obj))));
-        UserActionRegistry.register(new MiniAction("PARALLEL", params -> { ... }));
-        UserActionRegistry.register(new MiniAction("RACE", params -> { ... }));
-        UserActionRegistry.register(new MiniAction("WAIT", params -> { ... }));
-        UserActionRegistry.register(new MiniAction("HELLO.WORLD", params -> ActionUtils.wrap(new PrintAction("Hello World!"))));
+### 2. WrappedRRAction (RoadRunner Actions)
+
+**Purpose**: Wraps any `com.acmerobotics.roadrunner.Action` as an InstantAuto `Action`.
+
+```java
+public class WrappedRRAction implements Action {
+    private final com.acmerobotics.roadrunner.Action rrAction;
+    
+    public WrappedRRAction(com.acmerobotics.roadrunner.Action action) {
+        this.rrAction = action;
+    }
+    
+    @Override public boolean run() {
+        return rrAction.run(new TelemetryPacket());
+    }
+    
+    public com.acmerobotics.roadrunner.Action getRRAction() { return rrAction; }
+}
+```
+
+### 3. Simple Action (Instant Complete)
+
+**Purpose**: Non-trajectory actions that complete in one loop.
+
+```java
+public class PrintAction implements Action {
+    private final String message;
+    public PrintAction(Object obj) { this.message = ActionUtils.asString(obj); }
+    
+    @Override public boolean run() {
+        System.out.println(message);
+        return false;  // Instant complete
     }
 }
 ```
 
-### Primitive Factory Methods
+---
 
-#### STRAFE.TO Factory
-```java
-private Action strafeToFactory(Object params) {
-    // Case 1: Variable reference
-    if (params instanceof String) {
-        String varName = (String) params;
-        ConfigEntry<?> entry = MetaFieldRegistry.getEntry(varName);
-        if (entry != null && entry.getValue() instanceof Pose2d) {
-            final Pose2d p = (Pose2d) entry.getValue();
-            BuilderAction ba = builder -> 
-                builder.strafeToSplineHeading(new Vector2d(p.x, p.y), Math.toRadians(p.heading));
-            return createCachedBuilderAction(ba);
-        }
-    }
-    // Case 2: Literal "x, y, heading"
-    double[] d = ActionUtils.asDoubles(params, 3);
-    if (d != null) {
-        BuilderAction ba = builder -> 
-            builder.strafeToSplineHeading(new Vector2d(d[0], d[1]), Math.toRadians(d[2]));
-        return createCachedBuilderAction(ba);
-    }
-    return null;
-}
-```
+## Caching: Critical for if/else Branches
 
-#### SPLINE.TO Factory
-```java
-private Action splineToFactory(Object params) {
-    if (params instanceof String) {
-        String s = (String) params;
-        String[] parts = s.split(",");
+### Problem
 
-        // Case 1: "x, y, heading, startTan, endTan" (5 params)
-        if (parts.length == 5) {
-            double[] d = ActionUtils.asDoubles(s, 5);
-            if (d != null) {
-                BuilderAction ba = builder -> builder
-                    .setTangent(Math.toRadians(d[3]))
-                    .splineToSplineHeading(new com.acmerobotics.roadrunner.Pose2d(d[0], d[1], Math.toRadians(d[2])), Math.toRadians(d[4]));
-                return createCachedBuilderAction(ba);
-            }
-        }
+Actions inside `if/else` branches are **not fused** by top-level `merge()`. Without caching, they execute as individual motions (stuttering).
 
-        // Case 2: "poseName, startTan, endTan" (3 params)
-        if (parts.length == 3) {
-            String poseName = parts[0].trim();
-            ConfigEntry<?> entry = MetaFieldRegistry.getEntry(poseName);
-            if (entry != null && entry.getValue() instanceof Pose2d) {
-                Pose2d p = (Pose2d) entry.getValue();
-                try {
-                    double startTan = Double.parseDouble(parts[1].trim());
-                    double endTan = Double.parseDouble(parts[2].trim());
-                    BuilderAction ba = builder -> builder
-                        .setTangent(Math.toRadians(startTan))
-                        .splineToSplineHeading(new com.acmerobotics.roadrunner.Pose2d(p.x, p.y, Math.toRadians(p.heading)), Math.toRadians(endTan));
-                    return createCachedBuilderAction(ba);
-                } catch (NumberFormatException ignored) {}
-            }
-        }
-    }
-    return null;
-}
-```
-
-### Caching Helper (Essential for if/else)
+### Solution: Cache on First Run
 
 ```java
 private Action createCachedBuilderAction(BuilderAction delegate) {
@@ -109,6 +94,7 @@ private Action createCachedBuilderAction(BuilderAction delegate) {
 
         @Override public boolean run() {
             if (cachedAction == null) {
+                // Build ONCE using CURRENT robot pose
                 cachedAction = delegate.apply(
                     mecanumDrive.actionBuilder(mecanumDrive.localizer.getPose())
                 ).build();
@@ -119,293 +105,280 @@ private Action createCachedBuilderAction(BuilderAction delegate) {
 }
 ```
 
----
-
-## ActionUtils (`org.firstinspires.ftc.teamcode.action.ActionUtils`)
-
-### BuilderAction Interface
-
+**Usage in factory:**
 ```java
-public interface BuilderAction extends Action {
-    /** Modifies the trajectory builder; called during fusion */
-    TrajectoryActionBuilder apply(TrajectoryActionBuilder builder);
+private Action strafeToFactory(Object params) {
+    // Resolve params...
+    return createCachedBuilderAction(builder -> 
+        builder.strafeToSplineHeading(new Vector2d(x, y), Math.toRadians(heading))
+    );
 }
 ```
 
-- **Dual purpose**:
-    1. Can run standalone (builds trajectory on first run)
-    2. Can be fused (`.apply(builder)` chains segments)
+> **Key**: `mecanumDrive.localizer.getPose()` gives the **live pose at branch entry**, not parse time.
 
-### Core Utilities
+---
 
-#### 1. Wrapping RoadRunner Actions
+## Trajectory Fusion (merge / mergeNestedActions)
+
+### Top-Level Merge (`ActionUtils.merge`)
+
+Fuses **consecutive** `BuilderAction` instances in a flat list:
 
 ```java
-// RR Action → InstantAuto Action
-public static com.example.instantauto.actions.Action wrap(com.acmerobotics.roadrunner.Action rrAction) {
-    return new WrappedRRAction(rrAction);
+public static List<Action> merge(List<Action> actions, MecanumDrive drive) {
+    List<Action> result = new ArrayList<>();
+    List<BuilderAction> currentGroup = new ArrayList<>();
+
+    for (Action action : actions) {
+        if (action instanceof BuilderAction) {
+            currentGroup.add((BuilderAction) action);
+        } else {
+            if (!currentGroup.isEmpty()) {
+                result.add(fuse(currentGroup, drive));  // Fuse group
+                currentGroup.clear();
+            }
+            result.add(action);
+        }
+    }
+    if (!currentGroup.isEmpty()) result.add(fuse(currentGroup, drive));
+
+    return result;
 }
 
-// InstantAuto Action → RR Action
-public static com.acmerobotics.roadrunner.Action adapt(
-        final com.example.instantauto.actions.Action action, 
-        final Telemetry telemetry) {
+private static Action fuse(List<BuilderAction> group, MecanumDrive drive) {
+    TrajectoryActionBuilder builder = drive.actionBuilder(drive.localizer.getPose());
+    for (BuilderAction ba : group) builder = ba.apply(builder);
+    return wrap(builder.build());
+}
+```
+
+### Deep Merge (`ActionUtils.mergeNestedActions`)
+
+Recursively merges inside **nested actions** — if/else branches, PARALLEL, RACE, UserAction expansions:
+
+```java
+public static List<Action> mergeNestedActions(List<Action> actions, MecanumDrive drive) {
+    // 1. Process each action for nested actions via reflection
+    // 2. Recursively merge nested lists
+    // 3. Fuse consecutive BuilderActions at each level
+    // 4. Return fully merged action tree
+}
+
+// Reflection targets:
+if (action.getClass().getName().contains("IfElseAction")) {
+    // Look for trueActions, falseActions, targetActions fields
+    // Recursively mergeNestedActions on each
+}
+if (action instanceof ParallelAction || action instanceof RaceAction) {
+    // Merge subActions list
+}
+```
+
+---
+
+## Adaptation Layer (ActionUtils)
+
+### `wrap()` - RR Action → InstantAuto Action
+
+```java
+public static Action wrap(com.acmerobotics.roadrunner.Action rrAction) {
+    return new WrappedRRAction(rrAction);
+}
+```
+
+### `adapt()` - InstantAuto Action → RR Action
+
+```java
+public static com.acmerobotics.roadrunner.Action adapt(Action action, Telemetry telemetry) {
     if (action instanceof WrappedRRAction) {
         return ((WrappedRRAction) action).getRRAction();
     }
     return new com.acmerobotics.roadrunner.Action() {
         @Override public boolean run(TelemetryPacket packet) {
-            return action.run();
+            return action.run();  // Delegate to InstantAuto action
         }
     };
 }
 ```
 
-#### 2. Parsing Parameters with Variable Resolution
+### `asActions()` - Parse Action String → List<Action>
 
 ```java
-// "30, 0, 0" → [30, 0, 0]
-// "myPose" → resolves myPose (Pose2d) → [x, y, heading]
+public static List<Action> asActions(Object params, MecanumDrive drive) {
+    if (params instanceof String) {
+        String content = (String) params;
+        List<String> subActionStrings = UserActionRegistry.splitByTopLevelCommas(content);
+        List<Action> actions = new ArrayList<>();
+        for (String sub : subActionStrings) {
+            Action a = UserActionRegistry.createAction(sub);
+            if (a != null) actions.add(a);
+        }
+        return actions;
+    }
+    return null;
+}
+```
+
+### `asDoubles()` - Parse Parameters with Variable Resolution
+
+```java
 public static double[] asDoubles(Object params, int count) {
     if (params instanceof String) {
         String s = (String) params;
         String[] parts = s.split(",");
         if (parts.length != count) return null;
+        
         double[] result = new double[count];
-        for (int i = 0; i < count; i++) {
-            String part = parts[i].trim();
-            try {
-                result[i] = Double.parseDouble(part);
-            } catch (NumberFormatException e) {
+        try {
+            for (int i = 0; i < count; i++) {
+                String part = parts[i].trim();
+                // Try literal double
+                try { result[i] = Double.parseDouble(part); continue; }
+                catch (NumberFormatException ignored) {}
+                
                 // Try variable lookup
                 ConfigEntry<?> entry = MetaFieldRegistry.getEntry(part);
-                if (entry != null && entry.getValue() instanceof Number) {
-                    result[i] = ((Number) entry.getValue()).doubleValue();
-                } else return null;
+                if (entry != null && entry.getValue() instanceof Pose2d) {
+                    // Special handling for Pose2d in multi-param context
+                    // (usually handled at factory level, not here)
+                }
             }
-        }
-        return result;
+        } catch (Exception e) { return null; }
     }
     return null;
 }
 ```
 
-#### 3. Parsing Action Strings Recursively
+---
+
+## Complete ActionManager Factory Patterns
+
+### Movement Primitives (BuilderAction with Caching)
 
 ```java
-// "ACTION1(p1), ACTION2(p2)" → List<Action>
-public static List<Action> asActions(Object params, MecanumDrive drive) {
+// STRAFE.TO
+private Action strafeToFactory(Object params) {
+    // Variable reference
     if (params instanceof String) {
-        List<String> subActions = UserActionRegistry.splitByTopLevelCommas((String) params);
-        List<Action> actions = new ArrayList<>();
-        for (String sub : subActions) {
-            Action a = UserActionRegistry.createAction(sub);
-            if (a != null) actions.add(a);
-        }
-        return merge(actions, drive);  // Fuse consecutive BuilderActions
-    }
-    return null;
-}
-```
-
-#### 4. Merging (Trajectory Fusion)
-
-```java
-// Top-level merge
-static List<Action> merge(List<Action> actions, MecanumDrive drive) {
-    List<Action> merged = new ArrayList<>();
-    List<BuilderAction> group = new ArrayList<>();
-    for (Action a : actions) {
-        if (a instanceof BuilderAction) group.add((BuilderAction) a);
-        else {
-            if (!group.isEmpty()) { merged.add(fuse(group, drive)); group.clear(); }
-            merged.add(a);
+        String varName = (String) params;
+        ConfigEntry<?> entry = MetaFieldRegistry.getEntry(varName);
+        if (entry != null && entry.getValue() instanceof Pose2d) {
+            final Pose2d p = (Pose2d) entry.getValue();
+            return createCachedBuilderAction(builder -> 
+                builder.strafeToSplineHeading(new Vector2d(p.x, p.y), Math.toRadians(p.heading))
+            );
         }
     }
-    if (!group.isEmpty()) merged.add(fuse(group, drive));
-    return merged;
-}
-
-// Recursive nested merge (handles if/else, parallel, race)
-public static List<Action> mergeNestedActions(List<Action> actions, MecanumDrive drive) {
-    // 1. Recursively process each action's nested actions via reflection
-    // 2. Then merge at this level
-    // 3. Returns fully fused action list
-}
-```
-
-#### 5. Fusing BuilderActions
-
-```java
-private static Action fuse(List<BuilderAction> group, MecanumDrive drive) {
-    TrajectoryActionBuilder builder = drive.actionBuilder(drive.localizer.getPose());
-    for (BuilderAction ba : group) {
-        builder = ba.apply(builder);  // Chain: builder = ba1.apply(ba2.apply(...))
-    }
-    return wrap(builder.build());  // Single RR Action wrapped as InstantAuto Action
-}
-```
-
----
-
-## Creating Custom Actions
-
-### Type 1: Simple InstantAuto Action (No RR)
-
-```java
-// In ActionManager.init():
-UserActionRegistry.register(new MiniAction("MY.ACTION", params -> {
-    return new Action() {
-        private int state = 0;
-        @Override public boolean run() {
-            if (state == 0) { /* init */ state++; return true; }
-            if (state == 1) { /* work */ state++; return true; }
-            return false; // done
-        }
-    };
-}));
-```
-
-**Text file usage:** `MY.ACTION()`
-
----
-
-### Type 2: RoadRunner Action via Wrapping
-
-```java
-UserActionRegistry.register(new MiniAction("RR.ACTION", params -> {
-    com.acmerobotics.roadrunner.Action rrAction = drive.actionBuilder(pose)
-        .strafeTo(new Vector2d(10, 10))
-        .build();
-    return ActionUtils.wrap(rrAction);  // Wrap RR Action
-}));
-```
-
----
-
-### Type 3: BuilderAction (Fusible Trajectory)
-
-```java
-UserActionRegistry.register(new MiniAction("FUSIBLE.ACTION", params -> {
-    ActionUtils.BuilderAction ba = new ActionUtils.BuilderAction() {
-        @Override public TrajectoryActionBuilder apply(TrajectoryActionBuilder builder) {
-            return builder.strafeTo(new Vector2d(10, 10))
-                          .turn(Math.toRadians(90));
-        }
-        @Override public boolean run() {
-            // Standalone execution (with caching!)
-            return apply(drive.actionBuilder(drive.localizer.getPose())).build()
-                       .run(new TelemetryPacket());
-        }
-    };
-    // Wrap with caching for if/else safety
-    return createCachedBuilderAction(ba);
-}));
-```
-
-**Key**: Implement `BuilderAction` + use `createCachedBuilderAction()` for caching.
-
----
-
-### Type 4: Composite Action (PARALLEL/RACE style)
-
-```java
-UserActionRegistry.register(new MiniAction("SEQUENTIAL", params -> {
-    List<Action> actions = ActionUtils.asActions(params, drive);
-    if (actions == null) return null;
-    List<com.acmerobotics.roadrunner.Action> rrActions = actions.stream()
-        .map(a -> ActionUtils.adapt(a, telemetry))
-        .collect(Collectors.toList());
-    return ActionUtils.wrap(new com.acmerobotics.roadrunner.SequentialAction(rrActions));
-}));
-```
-
----
-
-## Adapting RoadRunner Actions into Ecosystem
-
-### Direct RR Action Registration
-
-```java
-// Any RR Action can be wrapped and registered
-UserActionRegistry.register(new MiniAction("DRIVE.TO", params -> {
+    // Literal params
     double[] d = ActionUtils.asDoubles(params, 3);
     if (d != null) {
-        com.acmerobotics.roadrunner.Action rr = drive.actionBuilder(drive.localizer.getPose())
-            .strafeTo(new Vector2d(d[0], d[1]))
-            .build();
-        return ActionUtils.wrap(rr);
+        return createCachedBuilderAction(builder -> 
+            builder.strafeToSplineHeading(new Vector2d(d[0], d[1]), Math.toRadians(d[2]))
+        );
     }
     return null;
-}));
+}
+
+// SPLINE.TO
+private Action splineToFactory(Object params) {
+    if (params instanceof String) {
+        String[] parts = ((String) params).split(",");
+        
+        // 5 params: x, y, heading, startTan, endTan
+        if (parts.length == 5) {
+            double[] d = ActionUtils.asDoubles(params, 5);
+            if (d != null) {
+                return createCachedBuilderAction(builder -> builder
+                    .setTangent(Math.toRadians(d[3]))
+                    .splineToSplineHeading(new Pose2d(d[0], d[1], Math.toRadians(d[2])), Math.toRadians(d[4]))
+                );
+            }
+        }
+        
+        // 3 params: poseVar, startTan, endTan
+        if (parts.length == 3) {
+            String poseName = parts[0].trim();
+            ConfigEntry<?> entry = MetaFieldRegistry.getEntry(poseName);
+            if (entry != null && entry.getValue() instanceof Pose2d) {
+                Pose2d p = (Pose2d) entry.getValue();
+                try {
+                    double startTan = Double.parseDouble(parts[1].trim());
+                    double endTan = Double.parseDouble(parts[2].trim());
+                    return createCachedBuilderAction(builder -> builder
+                        .setTangent(Math.toRadians(startTan))
+                        .splineToSplineHeading(new Pose2d(p.x, p.y, Math.toRadians(p.heading)), Math.toRadians(endTan))
+                    );
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+    }
+    return null;
+}
 ```
 
-### Using RR Composite Actions
+### Control Flow (PARALLEL, RACE, WAIT)
 
 ```java
+// WAIT
+UserActionRegistry.register(new MiniAction("WAIT", params -> {
+    double[] d = ActionUtils.asDoubles(params, 1);
+    return d != null ? ActionUtils.wrap(new SleepAction(d[0])) : null;
+}));
+
+// PARALLEL
 UserActionRegistry.register(new MiniAction("PARALLEL", params -> {
     List<Action> actions = ActionUtils.asActions(params, drive);
     List<com.acmerobotics.roadrunner.Action> rrActions = actions.stream()
-        .map(a -> ActionUtils.adapt(a, telemetry))
-        .collect(Collectors.toList());
-    return ActionUtils.wrap(new com.acmerobotics.roadrunner.ParallelAction(rrActions));
+        .map(a -> ActionUtils.adapt(a, telemetry)).collect(Collectors.toList());
+    return ActionUtils.wrap(new ParallelAction(rrActions));
 }));
 
+// RACE
 UserActionRegistry.register(new MiniAction("RACE", params -> {
     List<Action> actions = ActionUtils.asActions(params, drive);
     List<com.acmerobotics.roadrunner.Action> rrActions = actions.stream()
-        .map(a -> ActionUtils.adapt(a, telemetry))
-        .collect(Collectors.toList());
-    return ActionUtils.wrap(new RaceAction(rrActions));  // Custom RR Action
+        .map(a -> ActionUtils.adapt(a, telemetry)).collect(Collectors.toList());
+    return ActionUtils.wrap(new RaceAction(rrActions));
 }));
 ```
 
-### Custom RR Action (RaceAction Example)
+---
+
+## Execution Pipeline (AutonomousBase.start())
 
 ```java
-public static class RaceAction implements com.acmerobotics.roadrunner.Action {
-    private final List<com.acmerobotics.roadrunner.Action> actions;
-    public RaceAction(List<com.acmerobotics.roadrunner.Action> actions) { this.actions = actions; }
-
-    @Override public boolean run(TelemetryPacket packet) {
-        boolean allRunning = true;
-        for (com.acmerobotics.roadrunner.Action a : actions) {
-            if (!a.run(packet)) allRunning = false;
-        }
-        return allRunning && !actions.isEmpty();
-    }
+@Override
+public void start() {
+    // 1. Re-parse with MecanumDrive for trajectory building
+    List<Action> merged = ActionUtils.asActions(autoParser.getActionContent(), mecanumDrive);
+    
+    // 2. Deep merge (fuses nested actions in if/else, PARALLEL, RACE)
+    merged = ActionUtils.mergeNestedActions(merged, mecanumDrive);
+    
+    // 3. Adapt each to RoadRunner Action
+    List<com.acmerobotics.roadrunner.Action> rrActions = merged.stream()
+        .map(a -> ActionUtils.adapt(a, telemetry))
+        .collect(Collectors.toList());
+    
+    // 4. Execute sequentially via RR
+    Actions.runBlocking(
+        new RaceAction(new SequentialAction(rrActions))
+    );
 }
 ```
 
 ---
 
-## Text File Usage Examples
+## Common Issues & Fixes
 
-```ini
-# Simple primitives
-STRAFE.TO(30, 0, 0)
-SPLINE.TO(0, 0, 0, 90, -90)
-WAIT(0.5)
-PRINT("Hello")
-
-# Variable references
-STRAFE.TO(redGoalPose)
-SPLINE.TO(scorePose, 45, -45)
-
-# Composites (from UserActionSettings.txt)
-SCORE_SAMPLE
-
-# Control flow
-if (isBlue) {
-    STRAFE.TO(blueGoalPose)
-} else {
-    STRAFE.TO(redGoalPose)
-}
-
-# Parallel/Race
-PARALLEL(STRAFE.TO(10, 0, 0), SPIN.TO(90))
-RACE(STRAFE.TO(20, 0, 0), WAIT(2.0))
-```
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| Trajectory rebuilds every loop | Missing `createCachedBuilderAction` | Wrap factory return with caching |
+| Wrong pose in if/else branch | Cached at parse time | Cache uses `localizer.getPose()` at first run |
+| Actions don't fuse | `mergeNestedActions` not called | Call in `start()` after `asActions()` |
+| Stuttering at segment boundaries | Not using `BuilderAction.apply()` | Return `BuilderAction` from factory |
+| Supplier captures old OpMode | Not cleared in `stop()` | `MetaFieldRegistry.clear()` + `UserActionRegistry.clear()` |
 
 ---
 
@@ -413,6 +386,7 @@ RACE(STRAFE.TO(20, 0, 0), WAIT(2.0))
 
 | File | Location |
 |------|----------|
-| `ActionManager.java` | `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/action/` |
 | `ActionUtils.java` | `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/action/` |
+| `ActionManager.java` | `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/action/` |
 | `AutonomousBase.java` | `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/opmodes/` |
+| `BuilderAction` | `com.example.instantauto.actions.BuilderAction` |
