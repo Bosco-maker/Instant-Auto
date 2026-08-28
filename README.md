@@ -1,6 +1,7 @@
-# FTC Instant Auto (Prototype)
+# FTC Instant Auto (Core)
 
 A Java-based architecture for FTC robots designed to parse text files into AUTONOMOUS sequences (using RoadRunner Actions) and robot configurations. This system replaces hard-coded autonomous code with a decoupled, registry-based system, allowing for rapid iteration and configuration without code redeploys.
+See https://bosco-maker.github.io/Instant-Auto/ for more.
 
 ## Key Features
 
@@ -88,7 +89,7 @@ File: pureJava/src/main/java/com/example/purejava/textfiles/MetaActionSettings
 Directory: pureJava/src/main/java/com/example/purejava/textfiles/
 
 - **DO**:
-  - Start filenames with `[ACTIVE]` (e.g., `[ACTIVE]RedSideAuto`).
+  - Start filenames with `ACTIVE` (e.g., `ACTIVERedSideAuto`).
   - Always include a `Starting=POSITION` field (e.g., `Starting=RED.FAR`).
   - Use `Title=My Name` to give your auto a label.
 - **DO NOT**:

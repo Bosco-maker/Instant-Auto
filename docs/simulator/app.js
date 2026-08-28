@@ -1,11 +1,13 @@
 /**
  * Main Application - InstantAuto Simulator (Simplified)
  * Single ACTIVE Auto textarea, smooth robot animation, guide tab
+ * Supports seasonal field background images
  */
 
 import { SimulatorEngine } from './sim-engine.js';
 import { FieldRenderer, updateLegend } from './field-renderer.js';
 import { Pose2d } from './core.js';
+import { FIELD_IMAGES, getFieldConfig, getFieldOptions } from './fields/field-registry.js';
 
 // State
 let renderer = null;
@@ -15,6 +17,7 @@ let animationSpeed = 1;
 let isAnimating = false;
 let lastFrameTime = 0;
 let hasUserChanges = false;
+let currentFieldConfig = getFieldConfig('decode-2025');
 
 // DOM Elements (will be initialized in init)
 let elements = {};
@@ -32,11 +35,15 @@ function init() {
             statusEl: document.getElementById('status'),
             telemetryEl: document.getElementById('telemetry'),
             legendEl: document.getElementById('legend'),
-            guidePanel: document.getElementById('guidePanel')
+            guidePanel: document.getElementById('guidePanel'),
+            fieldSelect: document.getElementById('fieldSelect')
         };
 
+        // Populate field selector dropdown
+        populateFieldSelector();
+
         if (elements.canvas) {
-            renderer = new FieldRenderer(elements.canvas);
+            renderer = new FieldRenderer(elements.canvas, currentFieldConfig);
             renderer.renderStatic({ pose: new Pose2d(0, 0, 0), trajectory: [] });
         }
 
@@ -56,6 +63,17 @@ function init() {
     } catch (e) {
         console.error("Initialization error:", e);
     }
+}
+
+function populateFieldSelector() {
+    if (!elements.fieldSelect) return;
+
+    const options = getFieldOptions();
+    elements.fieldSelect.innerHTML = options.map(opt =>
+        `<option value="${opt.id}" ${opt.id === currentFieldConfig.id ? 'selected' : ''}>
+            ${opt.name} (${opt.season})
+        </option>`
+    ).join('');
 }
 
 // Default ACTIVE Auto configuration
@@ -208,6 +226,15 @@ function finishAnimation() {
     disableControls(false);
 }
 
+function changeField(fieldId) {
+    const config = getFieldConfig(fieldId);
+    currentFieldConfig = config;
+    if (renderer) {
+        renderer.setFieldConfig(config);
+    }
+    log('info', `Field changed to: ${config.name} (${config.season})`);
+}
+
 document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'TEXTAREA') return;
     switch (e.key) {
@@ -238,6 +265,7 @@ window.resetSimulation = resetSimulation;
 window.updateSpeed = updateSpeed;
 window.clearTelemetry = clearTelemetry;
 window.toggleGuide = toggleGuide;
+window.changeField = changeField;
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', init);

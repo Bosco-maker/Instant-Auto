@@ -2,16 +2,20 @@
  * Field Renderer - Draws FTC field, robot, and trajectory on canvas
  * FTC Field: 144" x 144" (12ft x 12ft)
  * Supports animated robot movement along trajectory with interpolated heading
+ * Supports custom field background images for different seasons
  */
 
 export class FieldRenderer {
-    constructor(canvas) {
+    constructor(canvas, fieldConfig = null) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
 
+        // Field configuration (from field registry)
+        this.fieldConfig = fieldConfig || { width: 144, height: 144, image: null };
+
         // Field dimensions (inches)
-        this.fieldWidth = 144;
-        this.fieldHeight = 144;
+        this.fieldWidth = this.fieldConfig.width || 144;
+        this.fieldHeight = this.fieldConfig.height || 144;
 
         // Rendering options
         this.padding = 40; // pixels around field
@@ -26,13 +30,53 @@ export class FieldRenderer {
         this.offsetX = 0;
         this.offsetY = 0;
 
+        // Field image
+        this.fieldImage = null;
+        this.imageLoaded = false;
+        this.imageError = false;
+
         // Animation state
         this.animationTime = 0;
         this.currentTrajectory = null;
         this.isAnimating = false;
 
+        // Load field image if specified
+        if (this.fieldConfig.image) {
+            this.loadFieldImage(this.fieldConfig.image);
+        }
+
         this.resize();
         window.addEventListener('resize', () => this.resize());
+    }
+
+    loadFieldImage(src) {
+        this.fieldImage = new Image();
+        this.fieldImage.onload = () => {
+            this.imageLoaded = true;
+            this.imageError = false;
+            this.renderStatic({ pose: { x: 0, y: 0, heading: 0 }, trajectory: [] });
+        };
+        this.fieldImage.onerror = () => {
+            console.warn(`Failed to load field image: ${src}`);
+            this.imageLoaded = false;
+            this.imageError = true;
+            this.renderStatic({ pose: { x: 0, y: 0, heading: 0 }, trajectory: [] });
+        };
+        this.fieldImage.src = src;
+    }
+
+    setFieldConfig(config) {
+        this.fieldConfig = config;
+        this.fieldWidth = config.width || 144;
+        this.fieldHeight = config.height || 144;
+        this.imageLoaded = false;
+        this.imageError = false;
+
+        if (config.image) {
+            this.loadFieldImage(config.image);
+        } else {
+            this.renderStatic({ pose: { x: 0, y: 0, heading: 0 }, trajectory: [] });
+        }
     }
 
     resize() {
@@ -73,16 +117,26 @@ export class FieldRenderer {
         this.ctx.clearRect(0, 0, rect.width, rect.height);
     }
 
-    // Draw complete field
+    // Draw complete field - uses image if loaded, otherwise programmatic fallback
     drawField() {
-        this.drawFieldBackground();
-        this.drawFieldLines();
-        this.drawAprilTags();
-        this.drawCoordinateLabels();
+        const { x: left, y: top } = this.fieldToCanvas(-this.fieldWidth/2, this.fieldHeight/2);
+        const width = this.fieldWidth * this.scale;
+        const height = this.fieldHeight * this.scale;
+
+        if (this.imageLoaded && this.fieldImage) {
+            // Draw field background image
+            this.ctx.drawImage(this.fieldImage, left, top, width, height);
+        } else {
+            // Fallback: original programmatic field drawing
+            this.drawFieldBackground();
+            this.drawFieldLines();
+            this.drawAprilTags();
+            this.drawCoordinateLabels();
+        }
     }
 
+    // Programmatic fallback methods (original drawing code)
     drawFieldBackground() {
-        const rect = this.canvas.getBoundingClientRect();
         const { x: left, y: top } = this.fieldToCanvas(-this.fieldWidth/2, this.fieldHeight/2);
         const width = this.fieldWidth * this.scale;
         const height = this.fieldHeight * this.scale;
