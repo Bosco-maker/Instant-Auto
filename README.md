@@ -1,7 +1,7 @@
-# FTC Instant Auto (Core)
+# FTC Instant Auto (Core) & website docs
 
 A Java-based architecture for FTC robots designed to parse text files into AUTONOMOUS sequences (using RoadRunner Actions) and robot configurations. This system replaces hard-coded autonomous code with a decoupled, registry-based system, allowing for rapid iteration and configuration without code redeploys.
-See https://bosco-maker.github.io/Instant-Auto/ for more.
+See [the docs](https://bosco-maker.github.io/Instant-Auto/) for more.
 
 ## Key Features
 
@@ -45,7 +45,7 @@ The project is divided into three main layers:
 3. Navigate to the folder where you cloned the project.
 4. Select the root folder and wait for the project to load and sync.
 
-### 3. How to Use Test Programs
+### 3. How to Use Test Programs in PureJava (dev option)
 To run a program, find the file, right-click the green arrow next to the class or main method, and select "Run".
 
 If you are first time running them:
