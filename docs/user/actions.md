@@ -37,13 +37,13 @@ Moves the robot along a spline path to the target pose with tangent control.
 
 **Parameters (5 doubles):**
 
-| Param | Type | Description |
-|-------|------|-------------|
-| `x` | double | Target X in inches |
-| `y` | double | Target Y in inches |
-| `heading` | double | Target heading in degrees |
-| `startTangent` | double | Starting tangent angle (degrees) |
-| `endTangent` | double | Ending tangent angle (degrees) |
+| Param | Type | Description                                  |
+|-------|------|----------------------------------------------|
+| `x` | double | Target X in inches                           |
+| `y` | double | Target Y in inches                           |
+| `heading` | double | Target heading in degrees                    |
+| `startTangent` | double | Starting tangent angle of the path (degrees) |
+| `endTangent` | double | Ending tangent angle of the path (degrees)   |
 
 **Alternative:** Accepts a `Pose2d` variable + 2 tangents.
 ```ini

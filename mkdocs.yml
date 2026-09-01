@@ -12,6 +12,7 @@ extra_css:
 
 nav:
   - Home: index.md
+  - Getting Started: user/getting-started.md
   - Simulator: simulator
   - User Guide:
       - Introduction: user/index.md

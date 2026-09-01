@@ -18,49 +18,75 @@ Complete end-to-end tutorial: from zero to your first working autonomous routine
 Two ways to add InstantAuto to your project:
 
 ### Option 1: Clone the QuickStart Repository (Recommended)
+
+Here is the [repo](https://github.com/Esquimalt-Atom-Smashers/instant-auto-roadrunner-quickstart)
+
+Clone according to this [official instruction](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)
 ```bash
-git clone https://github.com/Bosco-Maker/Instant-Auto-Roadrunner-QuickStart.git
+#Example
+git clone https://github.com/Esquimalt-Atom-Smashers/instant-auto-roadrunner-quickstart.git
 cd Instant-Auto-Roadrunner-QuickStart
 # Open in Android Studio, let Gradle sync
 ```
 This gives you a complete project with `TeamCode`, `instantauto` module, and example text files already wired up.
 
-### Option 2: Add as Gradle Module
-1. Copy the `instantauto` directory into your FTC project root
-2. Add to `settings.gradle.kts`:
-   ```kotlin
-   include(":instantauto")
+### Option 2: Installing into an Existing Project
+
+Even if you have an existing project, it may be easier to start with the [quickstart](https://github.com/Esquimalt-Atom-Smashers/instant-auto-roadrunner-quickstart) and copy your other files over.
+
+If you're migrating from Road Runner 0.5.x, start by removing all references to Road Runner in your Gradle files and elsewhere in your project. Road Runner 1.0.x is not backwards compatible.
+
+1. Open the `TeamCode/build.gradle` file and add:
+
+   ```groovy
+   repositories {
+       maven {
+           url = 'https://maven.brott.dev/'
+       }
+   }
    ```
-3. Add dependency in `TeamCode/build.gradle.kts`:
-   ```kotlin
-   implementation(project(":instantauto"))
+
+   between the `android` and `dependencies` blocks. Also put:
+
+   ```groovy
+   implementation "com.acmerobotics.roadrunner:ftc:0.1.25"
+   implementation "com.acmerobotics.roadrunner:core:1.0.1"
+   implementation "com.acmerobotics.roadrunner:actions:1.0.1"
+   implementation "com.acmerobotics.dashboard:dashboard:0.5.1"
+   implementation "io.github.bosco-maker:instantauto:1.0.0"
    ```
-4. Sync Gradle
+
+   at the end of the `dependencies` block.
+
+2. Run a Gradle sync.
+
+3. [Clone or download the quickstart](https://github.com/Esquimalt-Atom-Smashers/instant-auto-roadrunner-quickstart).
+
+4. Navigate to the teamcode folder in the quickstart (`TeamCode/src/main/java/org/firstinspires/ftc/teamcode`) and copy the following to the teamcode folder of your existing project:
+   - `action/` directory
+   - `configs/` directory
+   - `opmodes/` directory
+   - `roadrunners/` directory
+   - `TextFileLocationBook.txt`
+
+5. Copy the text files from `TeamCode/src/main/assets/textfiles/` in the quickstart to the same location in your project.
+
+You're done! Time to continue on to [Roadrunner Tuning](https://rr.brott.dev/docs/v1-0/tuning/).
 
 ---
 
 ## Create the Required Text Files
 
-Create three files in your project's `textfiles/` directory (or `TeamCode/src/main/assets/textfiles/`):
+Create three files in your robot's onBot java within web interface (http://192.168.43.1:8080/) / (http://192.168.49.1:8080/ on a phone controller)
 
 ### 1. GeneralRobotSettings.txt
 ```ini
 # Global robot configuration
-# These are registered in Java via ConfigManager.init()
-
-# Required: starting pose placeholder (overridden per-auto)
-Starting = pose2d(0, 0, 0)
-
 # Example poses
 scorePose = pose2d(48, 24, 90)
 parkPose = pose2d(12, 12, 0)
 
-# Tuning parameters
-maxVelocity = 60.0
-intakePower = 1.0
-
-# Alliance selector (set per-match in ACTIVE file)
-isBlue = true
+testDouble = 41.7
 ```
 
 ### 2. UserActionSettings.txt
@@ -68,18 +94,10 @@ isBlue = true
 # Reusable "Big Actions" - macros composed of primitives
 # Syntax: ActionName = { subAction1, subAction2, ... }
 
-# Score a sample
-scoreSample = {
-    SPLINE.TO(scorePose, 0, 45),
-    INTAKE.ON(intakePower),
-    WAIT(0.5),
-    INTAKE.OFF
-}
-
-# Park at end of auto
-park = {
-    STRAFE.TO(parkPose),
-    WAIT(0.2)
+S_path = {
+   STRAFE.TO(parkPose),
+   SPLINE.TO(32, 12, 0, 90, 270)
+   SPLINE.TO(52, 12, 180, 270, 90)
 }
 ```
 
@@ -91,13 +109,12 @@ park = {
 # Overrides from GeneralRobotSettings go here
 
 Starting = pose2d(-24, 0, 0)
-title = "My First Auto"
+title = "My First Auto" #Optional
 isBlue = true
 
 # Action sequence - runs top to bottom
-STRAFE.TO(30, 0, 0)
-scoreSample
-park
+STRAFE.TO(0,0,0)
+S_path
 ```
 
 ---
@@ -113,7 +130,7 @@ park
 
 ## Select and Run
 
-1. On Driver Station, tap **Select Autonomous**
+1. On Driver Station, **Select Autonomous**
 2. Choose **"My First Auto"** (from the `title` field)
 3. Press **INIT** → Robot initializes, parses text files
 4. Press **START** → Autonomous runs!
@@ -142,14 +159,6 @@ park
 - **[Examples](examples.md)** — Real competition routines
 
 ---
-
-## File Location Reference
-
-| File | Typical Location |
-|------|------------------|
-| `GeneralRobotSettings.txt` | `TeamCode/src/main/assets/textfiles/` |
-| `UserActionSettings.txt` | `TeamCode/src/main/assets/textfiles/` |
-| `ACTIVE*.txt` | `TeamCode/src/main/assets/textfiles/` |
 
 > [!TIP]
 > On the Robot Controller web interface (http://192.168.43.1:8080/), you can edit `ACTIVE*.txt` files directly in **OnBot Java** → **Text File** mode. Changes take effect on next deploy — no Java recompile!

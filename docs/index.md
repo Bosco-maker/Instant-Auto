@@ -1,6 +1,8 @@
 # InstantAuto
 
-**Text-based autonomous programming framework for FIRST Tech Challenge**
+**Text-based autonomous programming framework for FIRST Tech Challenge.**
+
+Go here to [Get Started](user/getting-started.md).
 
 ---
 
@@ -80,7 +82,7 @@ scoreSample
 ## Project Status
 
 > [!NOTE]
-> **Alpha** — Actively developed. Core parsing, action system, and RoadRunner integration are functional. MeepMeep simulator if/else support is limited. API may change between versions.
+> **Alpha** — Developed by one person over the summer. Feedback / Contribution is much appreciated. Core parsing, action system, and RoadRunner integration are functional. MeepMeep simulator if/else support is limited. API may change between versions.
 
 ---
 
