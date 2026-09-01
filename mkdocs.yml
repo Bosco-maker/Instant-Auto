@@ -24,10 +24,10 @@ nav:
       - Examples: user/examples.md
   - Programmer Guide:
       - Introduction: programmer/index.md
-      - Roadrunner Integration: programmer/roadrunner.md
+      - Make Your Own Actions: programmer/custom-actions.md
       - Variables, Conditions & Hardware: programmer/variables-conditions.md
-      - Subsystems: programmer/subsystems.md
-      - Custom Actions: programmer/custom-actions.md
+      - Subsystems Architecture: programmer/subsystems.md
+      - Roadrunner Integration: programmer/roadrunner.md
       - Example: programmer/example.md
       - MeepMeep Testbed: programmer/meep-meep-testbed.md
   - Developer Guide:
