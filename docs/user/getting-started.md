@@ -67,9 +67,7 @@ If you're migrating from Road Runner 0.5.x, start by removing all references to 
    - `configs/` directory
    - `opmodes/` directory
    - `roadrunners/` directory
-   - `TextFileLocationBook.txt`
-
-5. Copy the text files from `TeamCode/src/main/assets/textfiles/` in the quickstart to the same location in your project.
+   - `TextFileLocationBook.java`
 
 You're done! Time to continue on to [Roadrunner Tuning](https://rr.brott.dev/docs/v1-0/tuning/).
 
